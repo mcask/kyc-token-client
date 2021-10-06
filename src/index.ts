@@ -4,14 +4,17 @@ import CEP47Client from "./cep47-client";
 import { config } from "dotenv";
 config();
 import {
+    CLAccountHash,
     CLPublicKey, Keys,
 } from "casper-js-sdk";
+import {getDeploy} from "../test/utils";
 
 const {
     NODE_ADDRESS,
     EVENT_STREAM_ADDRESS,
     CHAIN_NAME,
     MASTER_KEY_PAIR_PATH,
+    BURN_ONE_PAYMENT_AMOUNT,
     MINT_ONE_PAYMENT_AMOUNT,
 } = process.env;
 
@@ -70,7 +73,7 @@ export class GatekeeperService {
         // Mint
         const mintDeployHash = await cep47.mintOne(
             KEYS,
-            KEYS.publicKey,
+            owner,
             null,
             new Map([["name", "jan"]]),
             MINT_ONE_PAYMENT_AMOUNT!,
@@ -101,6 +104,39 @@ export class GatekeeperService {
      */
     async freeze(gatewayTokenKey: CLPublicKey): Promise<GatewayToken> {
         // Call "freeze"
+        let tokensOf = await cep47.getTokensOf(gatewayTokenKey);
+        console.log(`Tokens of faucet account`, tokensOf);
+
+        tokensOf = await cep47.getTokensOf(gatewayTokenKey);
+        console.log(`... Tokens of  ${gatewayTokenKey.toAccountHashStr()}`);
+        console.log(`... Tokens: ${JSON.stringify(tokensOf, null, 2)}`);
+
+        const tokenOneId = tokensOf[0];
+
+        let ownerOfTokenOne = await cep47.getOwnerOf(tokenOneId);
+        console.log(`... Owner of token: ${tokenOneId}`);
+        console.log(`... Owner: ${ownerOfTokenOne}`);
+
+        let tokenOneMetadata = await cep47.getTokenMeta(tokenOneId);
+        console.log(`... Metadata of token: ${tokenOneId}`);
+        console.log(`... Metadata: `);
+        console.log(tokenOneMetadata);
+
+        const newTokenOneMetadata = new Map([
+            ["status", 'Frozen'],
+        ]);
+        let updatedTokenMetaDeployHash = await cep47.updateTokenMetadata(
+            KEYS,
+            tokenOneId,
+            newTokenOneMetadata,
+            MINT_ONE_PAYMENT_AMOUNT!
+        );
+        console.log(
+            "... Update token metadata deploy hash: ",
+            updatedTokenMetaDeployHash
+        );
+        await getDeploy(NODE_ADDRESS!, updatedTokenMetaDeployHash);
+        console.log("... Token metadata updated sucessfully");
     }
 
     /**
