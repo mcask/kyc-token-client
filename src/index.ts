@@ -97,9 +97,6 @@ export class GatekeeperService {
     async revoke(gatewayTokenKey: CLPublicKey): Promise<GatewayToken> {
         // Call "revoke"
         let tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        console.log(`... Tokens of  ${gatewayTokenKey.toAccountHashStr()}`);
-        console.log(`... Tokens: ${JSON.stringify(tokensOf, null, 2)}`);
-
         const tokenOneId = tokensOf[0];
 
         const burnTokenOneDeployHash = await cep47.burnOne(
@@ -120,23 +117,8 @@ export class GatekeeperService {
     async freeze(gatewayTokenKey: CLPublicKey): Promise<GatewayToken> {
         // Call "freeze"
         let tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        console.log(`Tokens of faucet account`, tokensOf);
-
         tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        console.log(`... Tokens of  ${gatewayTokenKey.toAccountHashStr()}`);
-        console.log(`... Tokens: ${JSON.stringify(tokensOf, null, 2)}`);
-
         const tokenOneId = tokensOf[0];
-
-        let ownerOfTokenOne = await cep47.getOwnerOf(tokenOneId);
-        console.log(`... Owner of token: ${tokenOneId}`);
-        console.log(`... Owner: ${ownerOfTokenOne}`);
-
-        let tokenOneMetadata = await cep47.getTokenMeta(tokenOneId);
-        console.log(`... Metadata of token: ${tokenOneId}`);
-        console.log(`... Metadata: `);
-        console.log(tokenOneMetadata);
-
         const newTokenOneMetadata = new Map([
             ["status", 'Frozen'],
         ]);
@@ -161,23 +143,7 @@ export class GatekeeperService {
     async unfreeze(gatewayTokenKey: CLPublicKey): Promise<GatewayToken> {
         // Call "unfreeze"
         let tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        console.log(`Tokens of faucet account`, tokensOf);
-
-        tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        console.log(`... Tokens of  ${gatewayTokenKey.toAccountHashStr()}`);
-        console.log(`... Tokens: ${JSON.stringify(tokensOf, null, 2)}`);
-
         const tokenOneId = tokensOf[0];
-
-        let ownerOfTokenOne = await cep47.getOwnerOf(tokenOneId);
-        console.log(`... Owner of token: ${tokenOneId}`);
-        console.log(`... Owner: ${ownerOfTokenOne}`);
-
-        let tokenOneMetadata = await cep47.getTokenMeta(tokenOneId);
-        console.log(`... Metadata of token: ${tokenOneId}`);
-        console.log(`... Metadata: `);
-        console.log(tokenOneMetadata);
-
         const newTokenOneMetadata = new Map([
             ["status", 'UnFrozen'],
         ]);
@@ -186,10 +152,6 @@ export class GatekeeperService {
             tokenOneId,
             newTokenOneMetadata,
             MINT_ONE_PAYMENT_AMOUNT!
-        );
-        console.log(
-            "... Update token metadata deploy hash: ",
-            updatedTokenMetaDeployHash
         );
         await getDeploy(NODE_ADDRESS!, updatedTokenMetaDeployHash);
         console.log("... Token metadata updated sucessfully");
@@ -216,23 +178,7 @@ export class GatekeeperService {
     ): Promise<GatewayToken> {
         // Call updateExpiry on token
         let tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        console.log(`Tokens of faucet account`, tokensOf);
-
-        tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        console.log(`... Tokens of  ${gatewayTokenKey.toAccountHashStr()}`);
-        console.log(`... Tokens: ${JSON.stringify(tokensOf, null, 2)}`);
-
         const tokenOneId = tokensOf[0];
-
-        let ownerOfTokenOne = await cep47.getOwnerOf(tokenOneId);
-        console.log(`... Owner of token: ${tokenOneId}`);
-        console.log(`... Owner: ${ownerOfTokenOne}`);
-
-        let tokenOneMetadata = await cep47.getTokenMeta(tokenOneId);
-        console.log(`... Metadata of token: ${tokenOneId}`);
-        console.log(`... Metadata: `);
-        console.log(tokenOneMetadata);
-
         const newTokenOneMetadata = new Map([
             ["status", 'UpdateExpiry'],
         ]);
@@ -242,12 +188,7 @@ export class GatekeeperService {
             newTokenOneMetadata,
             MINT_ONE_PAYMENT_AMOUNT!
         );
-        console.log(
-            "... Update token metadata deploy hash: ",
-            updatedTokenMetaDeployHash
-        );
         await getDeploy(NODE_ADDRESS!, updatedTokenMetaDeployHash);
-        console.log("... Token metadata updated sucessfully");
     }
 
     // equivalent to GatekeeperNetworkService.hasGatekeeper, but requires no network private key
