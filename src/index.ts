@@ -1,9 +1,30 @@
-// import CEP47Client from "./cep47-client";
+import CEP47Client from "./cep47-client";
 // import * as utils from "./utils";
 // import * as constants from "./constants";
+import { config } from "dotenv";
+config();
 import {
-    CLPublicKey,
+    CLPublicKey, Keys,
 } from "casper-js-sdk";
+
+const {
+    NODE_ADDRESS,
+    EVENT_STREAM_ADDRESS,
+    CHAIN_NAME,
+    MASTER_KEY_PAIR_PATH,
+    MINT_ONE_PAYMENT_AMOUNT,
+} = process.env;
+
+const KEYS = Keys.Ed25519.parseKeyFiles(
+    `${MASTER_KEY_PAIR_PATH}/public_key.pem`,
+    `${MASTER_KEY_PAIR_PATH}/secret_key.pem`
+);
+
+const cep47 = new CEP47Client(
+    NODE_ADDRESS!,
+    CHAIN_NAME!,
+    EVENT_STREAM_ADDRESS!
+);
 
 export class GatekeeperService {
     /**
@@ -47,6 +68,15 @@ export class GatekeeperService {
         seed?: Uint8Array
     ): Promise<GatewayToken> {
         // Mint
+        const mintDeployHash = await cep47.mintOne(
+            KEYS,
+            KEYS.publicKey,
+            null,
+            new Map([["name", "jan"]]),
+            MINT_ONE_PAYMENT_AMOUNT!,
+            900000
+        );
+        console.log("... Mint deploy hash: ", mintDeployHash);
     }
 
     /**
