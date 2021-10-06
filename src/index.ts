@@ -96,6 +96,21 @@ export class GatekeeperService {
      */
     async revoke(gatewayTokenKey: CLPublicKey): Promise<GatewayToken> {
         // Call "revoke"
+        let tokensOf = await cep47.getTokensOf(gatewayTokenKey);
+        console.log(`... Tokens of  ${gatewayTokenKey.toAccountHashStr()}`);
+        console.log(`... Tokens: ${JSON.stringify(tokensOf, null, 2)}`);
+
+        const tokenOneId = tokensOf[0];
+
+        const burnTokenOneDeployHash = await cep47.burnOne(
+            KEYS,
+            new CLAccountHash(gatewayTokenKey.toAccountHash()),
+            tokenOneId,
+            BURN_ONE_PAYMENT_AMOUNT!
+        );
+        console.log("... Burn one deploy hash: ", burnTokenOneDeployHash);
+        await getDeploy(NODE_ADDRESS!, burnTokenOneDeployHash);
+        console.log("... Token burnt successfully");
     }
 
     /**
