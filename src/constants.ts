@@ -6,3 +6,6 @@ export enum CEP47Events {
 }
 
 export const DEFAULT_TTL = 1800000;
+export const MINT_PAYMENT_AMOUNT = "2000000000";
+export const UPDATE_PAYMENT_AMOUNT = "2000000000";
+export const BURN_PAYMENT_AMOUNT = "12000000000";

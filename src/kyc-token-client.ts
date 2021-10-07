@@ -2,8 +2,6 @@ import {
   CasperClient,
   CLPublicKey,
   CLAccountHash,
-  CLByteArray,
-  CLKey,
   CLString,
   CLTypeBuilder,
   CLValue,
@@ -16,13 +14,17 @@ import {
   Keys,
   RuntimeArgs,
 } from "casper-js-sdk";
-import {AsymmetricKey} from "casper-js-sdk/dist/lib/Keys";
-import { Some, None } from "ts-results";
-import {getDeploy} from "../test/utils";
-import { CEP47Events, DEFAULT_TTL } from "./constants";
+import { None } from "ts-results";
+import {
+  BURN_PAYMENT_AMOUNT,
+  CEP47Events,
+  DEFAULT_TTL,
+  MINT_PAYMENT_AMOUNT,
+  UPDATE_PAYMENT_AMOUNT
+} from "./constants";
 import {GatewayToken} from "./gateway-token";
 import * as utils from "./utils";
-import { RecipientType, IPendingDeploy } from "./types";
+import { IPendingDeploy, RecipientType } from "./types";
 
 import { concat } from '@ethersproject/bytes';
 import blake from "blakejs";
@@ -46,7 +48,6 @@ export class KycTokenClient {
     private nodeAddress: string,
     private chainName: string,
     private masterKey: Keys.AsymmetricKey,
-    private minPaymentAmount: string,
     private eventStreamAddress?: string
   ) {}
 
@@ -185,15 +186,22 @@ export class KycTokenClient {
     return tokenIds;
   }
 
+  /**
+   * Issue a KYC Token to the given account
+   * @param account
+   * @param meta
+   * @param paymentAmount
+   * @param ttl
+   */
   public async issue(
-    recipient: RecipientType,
+    account: RecipientType,
     meta: Map<string, string>,
-    paymentAmount: string,
+    paymentAmount = MINT_PAYMENT_AMOUNT,
     ttl = DEFAULT_TTL
   ) : Promise<DeployUtil.Deploy> {
     const tokenId = CLValueBuilder.option(None, CLTypeBuilder.string());
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient: utils.createRecipientAddress(recipient),
+      recipient: utils.createRecipientAddress(account),
       token_id: tokenId,
       token_meta: toCLMap(meta),
     });
@@ -249,13 +257,13 @@ export class KycTokenClient {
   }
 
    async burnOne(
-    owner: RecipientType,
+    account: RecipientType,
     tokenId: string,
     paymentAmount: string,
     ttl = DEFAULT_TTL
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      owner: utils.createRecipientAddress(owner),
+      owner: utils.createRecipientAddress(account),
       token_id: CLValueBuilder.string(tokenId),
     });
 
@@ -279,18 +287,22 @@ export class KycTokenClient {
   }
 
   /**
-   * Revoke the gateway token. The token must have been issued by a gatekeeper in the same network
-   * @param gatewayTokenKey
+   * Revoke the KYC Token belonging to this account
+   * @param account
+   * @param paymentAmount
    */
-  public async revoke(gatewayTokenKey: CLPublicKey): Promise<DeployUtil.Deploy> {
+  public async revoke(
+      account: CLPublicKey,
+      paymentAmount = BURN_PAYMENT_AMOUNT,
+): Promise<DeployUtil.Deploy> {
     // Call "revoke"
-    const tokensOf = await this.getTokensOf(gatewayTokenKey);
+    const tokensOf = await this.getTokensOf(account);
     const tokenOneId = tokensOf[0];
 
     const burnTokenOneDeployHash = await this.burnOne(
-        new CLAccountHash(gatewayTokenKey.toAccountHash()),
+        new CLAccountHash(account.toAccountHash()),
         tokenOneId,
-        this.minPaymentAmount!
+        paymentAmount
     );
     console.log(
         "... Revoke deploy hash: ",
@@ -299,8 +311,15 @@ export class KycTokenClient {
     return this.confirmDeploy(burnTokenOneDeployHash);
 }
 
-  public async freeze(gatewayTokenKey: CLPublicKey): Promise<DeployUtil.Deploy> {
-    const tokensOf = await this.getTokensOf(gatewayTokenKey);
+  /**
+   * Freeze the KYC Token belonging to this account
+   * @param account
+   * @param paymentAmount
+   */
+  public async freeze(account: CLPublicKey,
+                      paymentAmount = UPDATE_PAYMENT_AMOUNT
+  ): Promise<DeployUtil.Deploy> {
+    const tokensOf = await this.getTokensOf(account);
     const tokenOneId = tokensOf[0];
     const newTokenOneMetadata = new Map([
       ["status", 'Frozen'],
@@ -308,7 +327,7 @@ export class KycTokenClient {
     const updatedTokenMetaDeployHash = await this.updateTokenMetadata(
         tokenOneId,
         newTokenOneMetadata,
-        this.minPaymentAmount!
+        paymentAmount
     );
     console.log(
         "... freeze deploy hash: ",
@@ -317,9 +336,16 @@ export class KycTokenClient {
     return this.confirmDeploy(updatedTokenMetaDeployHash);
   }
 
-  public async unfreeze(gatewayTokenKey: CLPublicKey): Promise<DeployUtil.Deploy> {
+  /**
+   * Unfreeze the KYC Token belonging to this account
+   * @param account
+   * @param paymentAmount
+   */
+  public async unfreeze(account: CLPublicKey,
+                        paymentAmount = UPDATE_PAYMENT_AMOUNT
+  ): Promise<DeployUtil.Deploy> {
     // Call "unfreeze"
-    const tokensOf = await this.getTokensOf(gatewayTokenKey);
+    const tokensOf = await this.getTokensOf(account);
     const tokenOneId = tokensOf[0];
     const newTokenOneMetadata = new Map([
       ["status", 'UnFrozen'],
@@ -327,7 +353,7 @@ export class KycTokenClient {
     const updatedTokenMetaDeployHash = await this.updateTokenMetadata(
         tokenOneId,
         newTokenOneMetadata,
-        this.minPaymentAmount!
+        paymentAmount
     );
     console.log(
         "... unfreeze deploy hash: ",
@@ -336,12 +362,19 @@ export class KycTokenClient {
     return this.confirmDeploy(updatedTokenMetaDeployHash);
   }
 
-async updateExpiry(
-    gatewayTokenKey: CLPublicKey,
-    expireTime: number
+  /**
+   * Update the expiry of the KYC Token belonging to this account
+   * @param account
+   * @param expireTime
+   * @param paymentAmount
+   */
+public async updateExpiry(
+    account: CLPublicKey,
+    expireTime: number,
+    paymentAmount = UPDATE_PAYMENT_AMOUNT
 ): Promise<DeployUtil.Deploy> {
   // Call updateExpiry on token
-  const tokensOf = await this.getTokensOf(gatewayTokenKey);
+  const tokensOf = await this.getTokensOf(account);
   const tokenOneId = tokensOf[0];
   // TODO: Confirm with Casper/Civic what this looks like
   const newTokenOneMetadata = new Map([
@@ -350,7 +383,7 @@ async updateExpiry(
   const updatedTokenMetaDeployHash = await this.updateTokenMetadata(
       tokenOneId,
       newTokenOneMetadata,
-      this.minPaymentAmount!
+      paymentAmount
   );
   console.log(
       "... update expiry deploy hash: ",
