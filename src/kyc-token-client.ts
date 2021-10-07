@@ -15,7 +15,7 @@ import {None} from "ts-results";
 import {
   DEFAULT_TTL,
   MINT_PAYMENT_AMOUNT,
-  UPDATE_PAYMENT_AMOUNT
+  UPDATE_PAYMENT_AMOUNT, WHITELIST_PAYMENT_AMOUNT
 } from "./constants";
 import {GatewayToken, State} from "./gateway-token";
 import * as utils from "./utils";
@@ -166,31 +166,32 @@ export class KycTokenClient {
     return result.value();
   }
 
-  async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
-    const accountKey = utils.createRecipientAddress(account);
-    const accountBytes = CLValueParsers.toBytes(accountKey).unwrap();
-    const balanceOri = await this.balanceOf(account);
-    const balance = parseInt(balanceOri, 10);
+  /**
+   * This is a contract level function, where we request a new minter to be whitelisted
+   * @param account
+   * @param paymentAmount
+   * @param ttl
+   */
+  public async whitelist(
+    account: CLPublicKey,
+    paymentAmount = WHITELIST_PAYMENT_AMOUNT,
+    ttl = DEFAULT_TTL
+  ): Promise<string> {
+    // New minter to add
+    const runtimeArgs = RuntimeArgs.fromMap({
+      minter: utils.createRecipientAddress(account),
+    });
 
-    for (let i = 0; i < balance; i++) {
-      const numBytes = CLValueParsers.toBytes(CLValueBuilder.u256(i)).unwrap();
-      const concated = concat([accountBytes, numBytes]);
-      const blaked = blake.blake2b(concated, undefined, 32)
-      const str = Buffer.from(blaked).toString("hex");
-      // Check if the token contract has matches the KYC Token contract hash
-      if (str === this.contractHash) {
-        const result = await utils.contractDictionaryGetter(
-          this.nodeAddress,
-          str,
-          this.namedKeys.ownedTokensByIndex
-        );
-        const maybeValue = result.value().unwrap();
-        return new Promise((resolve) => resolve(maybeValue.value()));
-      }
-    }
-
-    return new Promise((resolve) => resolve(undefined));
-    ;
+    return contractCall({
+      chainName: this.chainName,
+      contractHash: this.contractHash,
+      entryPoint: "grant_minter",
+      keys: this.masterKey,
+      nodeAddress: this.nodeAddress,
+      paymentAmount,
+      runtimeArgs,
+      ttl
+    });
   }
 
   /**
@@ -217,70 +218,6 @@ export class KycTokenClient {
       chainName: this.chainName,
       contractHash: this.contractHash,
       entryPoint: "mint_one",
-      keys: this.masterKey,
-      nodeAddress: this.nodeAddress,
-      paymentAmount,
-      runtimeArgs,
-      ttl
-    });
-  }
-
-  /**
-   * The set function updates the entire metadata object
-   * @param token
-   * @param paymentAmount
-   * @param ttl
-   */
-  async setTokenMetadata(
-    token: GatewayToken,
-    paymentAmount: string,
-    ttl = DEFAULT_TTL
-  ): Promise<string> {
-    if (!token.tokenId) {
-      throw Error("Cannot set KYC Token Metadata with no id!");
-    }
-    const runtimeArgs = RuntimeArgs.fromMap({
-      token_id: CLValueBuilder.string(token.tokenId),
-      token_meta: token.toClMap(),
-    });
-
-    return contractCall({
-      chainName: this.chainName,
-      contractHash: this.contractHash,
-      entryPoint: "set_token_meta",
-      keys: this.masterKey,
-      nodeAddress: this.nodeAddress,
-      paymentAmount,
-      runtimeArgs,
-      ttl
-    });
-  }
-
-  /**
-   * The update fundtion only needs the metadata that needs to change per Casper
-   * @param token
-   * @param meta
-   * @param paymentAmount
-   * @param ttl
-   */
-  async updateTokenMetadata(
-    token: GatewayToken,
-    meta: CLMap<CLValue, CLValue>,
-    paymentAmount: string,
-    ttl = DEFAULT_TTL
-  ): Promise<string> {
-    if (!token.tokenId) {
-      throw Error("Cannot update KYC Token Metadata with no id!");
-    }
-    const runtimeArgs = RuntimeArgs.fromMap({
-      token_id: CLValueBuilder.string(token.tokenId),
-      token_meta: meta,
-    });
-
-    return contractCall({
-      chainName: this.chainName,
-      contractHash: this.contractHash,
-      entryPoint: "update_token_metadata",
       keys: this.masterKey,
       nodeAddress: this.nodeAddress,
       paymentAmount,
@@ -406,6 +343,97 @@ export class KycTokenClient {
     }
 
     return new Promise((resolve) => resolve(undefined));
+  }
+
+  private async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
+    const accountKey = utils.createRecipientAddress(account);
+    const accountBytes = CLValueParsers.toBytes(accountKey).unwrap();
+    const balanceOri = await this.balanceOf(account);
+    const balance = parseInt(balanceOri, 10);
+
+    for (let i = 0; i < balance; i++) {
+      const numBytes = CLValueParsers.toBytes(CLValueBuilder.u256(i)).unwrap();
+      const concated = concat([accountBytes, numBytes]);
+      const blaked = blake.blake2b(concated, undefined, 32)
+      const str = Buffer.from(blaked).toString("hex");
+      // Check if the token contract has matches the KYC Token contract hash
+      if (str === this.contractHash) {
+        const result = await utils.contractDictionaryGetter(
+          this.nodeAddress,
+          str,
+          this.namedKeys.ownedTokensByIndex
+        );
+        const maybeValue = result.value().unwrap();
+        return new Promise((resolve) => resolve(maybeValue.value()));
+      }
+    }
+
+    return new Promise((resolve) => resolve(undefined));
+    ;
+  }
+
+  /**
+   * The set function updates the entire metadata object
+   * @param token
+   * @param paymentAmount
+   * @param ttl
+   */
+  private async setTokenMetadata(
+    token: GatewayToken,
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
+  ): Promise<string> {
+    if (!token.tokenId) {
+      throw Error("Cannot set KYC Token Metadata with no id!");
+    }
+    const runtimeArgs = RuntimeArgs.fromMap({
+      token_id: CLValueBuilder.string(token.tokenId),
+      token_meta: token.toClMap(),
+    });
+
+    return contractCall({
+      chainName: this.chainName,
+      contractHash: this.contractHash,
+      entryPoint: "set_token_meta",
+      keys: this.masterKey,
+      nodeAddress: this.nodeAddress,
+      paymentAmount,
+      runtimeArgs,
+      ttl
+    });
+  }
+
+  /**
+   * The update fundtion only needs the metadata that needs to change per Casper
+   * @param token
+   * @param meta
+   * @param paymentAmount
+   * @param ttl
+   */
+  private async updateTokenMetadata(
+    token: GatewayToken,
+    meta: CLMap<CLValue, CLValue>,
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
+  ): Promise<string> {
+    if (!token.tokenId) {
+      throw Error("Cannot update KYC Token Metadata with no id!");
+    }
+    const runtimeArgs = RuntimeArgs.fromMap({
+      token_id: CLValueBuilder.string(token.tokenId),
+      token_meta: meta,
+    });
+
+    return contractCall({
+      chainName: this.chainName,
+      contractHash: this.contractHash,
+      entryPoint: "update_token_metadata",
+      keys: this.masterKey,
+      nodeAddress: this.nodeAddress,
+      paymentAmount,
+      runtimeArgs,
+      ttl
+    });
   }
 }
 
