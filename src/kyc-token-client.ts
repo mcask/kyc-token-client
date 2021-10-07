@@ -20,6 +20,7 @@ import {AsymmetricKey} from "casper-js-sdk/dist/lib/Keys";
 import { Some, None } from "ts-results";
 import {getDeploy} from "../test/utils";
 import { CEP47Events, DEFAULT_TTL } from "./constants";
+import {GatewayToken} from "./gateway-token";
 import * as utils from "./utils";
 import { RecipientType, IPendingDeploy } from "./types";
 
@@ -128,22 +129,25 @@ class KycTokenClient {
     return result.value();
   }
 
-  public async getTokenMeta(tokenId: string) {
+  public async getGatewayToken(account: CLPublicKey): Promise<GatewayToken> {
+    const tokensOf = await this.getTokensOf(account);
+    const tokenOneId = tokensOf[0];
+
     const result = await utils.contractDictionaryGetter(
       this.nodeAddress,
-      tokenId,
+      tokenOneId,
       this.namedKeys.metadata
     );
     const maybeValue = result.value().unwrap();
     const map: Array<[CLValue, CLValue]> = maybeValue.value();
 
-    const jsMap = new Map();
+    const jsMap = new Map<string, string>();
 
     for (const [innerKey, value] of map) {
       jsMap.set(innerKey.value(), value.value());
     }
 
-    return jsMap;
+    return GatewayToken.of(jsMap);
   }
 
   // TODO: Error: state query failed: ValueNotFound
