@@ -1,24 +1,15 @@
 import {
   CasperServiceByJsonRPC,
-  CLValue,
-  CLKey,
   CLAccountHash,
-  Keys,
+  CLKey,
   CLPublicKey,
+  CLValue,
+  Keys,
 } from "casper-js-sdk";
 import fs from "fs";
 
-import { RecipientType } from "./types";
-
-export const camelCased = (myString: string) =>
-  myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-
-export const createRecipientAddress = (recipient: RecipientType): CLKey => {
-  if (recipient instanceof CLPublicKey) {
-    return new CLKey(new CLAccountHash(recipient.toAccountHash()));
-  } else {
-    return new CLKey(recipient);
-  }
+export const createRecipientAddress = (recipient: CLPublicKey): CLKey => {
+  return new CLKey(new CLAccountHash(recipient.toAccountHash()));
 };
 
 /**
@@ -42,12 +33,12 @@ export const getBinary = (pathToBinary: string) => {
 
 /**
  * Returns global state root hash at current block.
- * @param {Object} client - JS SDK client for interacting with a node.
+ * @param {String} nodeAddress - JS SDK client for interacting with a node.
  * @return {String} Root hash of global state at most recent block.
  */
 export const getStateRootHash = async (nodeAddress: string) => {
   const client = new CasperServiceByJsonRPC(nodeAddress);
-  const { block } = await client.getLatestBlockInfo();
+  const {block} = await client.getLatestBlockInfo();
   if (block) {
     return block.header.state_root_hash;
   } else {
@@ -86,12 +77,11 @@ export const getContractData = async (
   path: string[] = []
 ) => {
   const client = new CasperServiceByJsonRPC(nodeAddress);
-  const blockState = await client.getBlockState(
+  return await client.getBlockState(
     stateRootHash,
     `hash-${contractHash}`,
     path
   );
-  return blockState;
 };
 
 export const contractDictionaryGetter = async (
@@ -116,10 +106,5 @@ export const contractDictionaryGetter = async (
   }
 };
 
-
 export const contractHashToByteArray = (contractHash: string) =>
   Uint8Array.from(Buffer.from(contractHash, "hex"));
-
-export const sleep = (num: number) => {
-  return new Promise((resolve) => setTimeout(resolve, num));
-};

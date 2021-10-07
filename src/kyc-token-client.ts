@@ -1,37 +1,26 @@
 import {
   CasperClient,
   CLPublicKey,
-  CLAccountHash,
-  CLString,
   CLTypeBuilder,
   CLValue,
   CLValueBuilder,
   CLValueParsers,
-  CLMap,
   DeployUtil,
-  EventName,
-  EventStream,
   Keys,
   RuntimeArgs,
 } from "casper-js-sdk";
-import { None } from "ts-results";
+import {None} from "ts-results";
 import {
-  BURN_PAYMENT_AMOUNT,
-  CEP47Events,
   DEFAULT_TTL,
   MINT_PAYMENT_AMOUNT,
   UPDATE_PAYMENT_AMOUNT
 } from "./constants";
-import {GatewayToken} from "./gateway-token";
+import {GatewayToken, State} from "./gateway-token";
 import * as utils from "./utils";
-import { IPendingDeploy, RecipientType } from "./types";
-
-import { concat } from '@ethersproject/bytes';
+import {concat} from '@ethersproject/bytes';
 import blake from "blakejs";
 
 export class KycTokenClient {
-  private contractHash: string;
-  private contractPackageHash: string;
   private namedKeys: {
     balances: string;
     metadata: string;
@@ -41,15 +30,21 @@ export class KycTokenClient {
     issuers: string;
     paused: string;
   };
-  private isListening = false;
-  private pendingDeploys: IPendingDeploy[] = [];
 
+  /**
+   * Construct the KYC Token Client
+   * @param nodeAddress
+   * @param chainName
+   * @param contractHash - this is the deployed address of the KYC Token Contract
+   * @param masterKey - keypair which is allowed to make changes to the KYC Token
+   */
   constructor(
     private nodeAddress: string,
     private chainName: string,
-    private masterKey: Keys.AsymmetricKey,
-    private eventStreamAddress?: string
-  ) {}
+    private contractHash: string,
+    private masterKey: Keys.AsymmetricKey
+  ) {
+  }
 
 
   public async name() {
@@ -130,13 +125,20 @@ export class KycTokenClient {
     return result.value();
   }
 
-  public async getGatewayToken(account: CLPublicKey): Promise<GatewayToken> {
-    const tokensOf = await this.getTokensOf(account);
-    const tokenOneId = tokensOf[0];
+  /**
+   * Return the KYC Token associated with the given account
+   * @param account
+   */
+  public async getGatewayToken(account: CLPublicKey): Promise<GatewayToken | undefined> {
+    const kycToken = await this.getKYCToken(account);
+
+    if (kycToken === undefined) {
+      return new Promise((resolve) => resolve(undefined));
+    }
 
     const result = await utils.contractDictionaryGetter(
       this.nodeAddress,
-      tokenOneId,
+      kycToken,
       this.namedKeys.metadata
     );
     const maybeValue = result.value().unwrap();
@@ -148,9 +150,12 @@ export class KycTokenClient {
       jsMap.set(innerKey.value(), value.value());
     }
 
-    return GatewayToken.of(jsMap);
+    return new Promise((resolve) => resolve(GatewayToken.of(account, kycToken, jsMap)));
   }
 
+  /**
+   * Test if the KYC Token contract is paused
+   */
   // TODO: Error: state query failed: ValueNotFound
   public async isPaused() {
     const result = await contractSimpleGetter(
@@ -161,83 +166,76 @@ export class KycTokenClient {
     return result.value();
   }
 
-  public async getTokensOf(account: CLPublicKey) {
+  async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
     const accountKey = utils.createRecipientAddress(account);
     const accountBytes = CLValueParsers.toBytes(accountKey).unwrap();
     const balanceOri = await this.balanceOf(account);
     const balance = parseInt(balanceOri, 10);
-
-    let tokenIds: string[] = [];
 
     for (let i = 0; i < balance; i++) {
       const numBytes = CLValueParsers.toBytes(CLValueBuilder.u256(i)).unwrap();
       const concated = concat([accountBytes, numBytes]);
       const blaked = blake.blake2b(concated, undefined, 32)
       const str = Buffer.from(blaked).toString("hex");
-      const result = await utils.contractDictionaryGetter(
-        this.nodeAddress,
-        str,
-        this.namedKeys.ownedTokensByIndex
-      );
-      const maybeValue = result.value().unwrap();
-      tokenIds = [...tokenIds, maybeValue.value()];
+      // Check if the token contract has matches the KYC Token contract hash
+      if (str === this.contractHash) {
+        const result = await utils.contractDictionaryGetter(
+          this.nodeAddress,
+          str,
+          this.namedKeys.ownedTokensByIndex
+        );
+        const maybeValue = result.value().unwrap();
+        return new Promise((resolve) => resolve(maybeValue.value()));
+      }
     }
 
-    return tokenIds;
+    return new Promise((resolve) => resolve(undefined));
+    ;
   }
 
   /**
    * Issue a KYC Token to the given account
    * @param account
-   * @param meta
+   * @param token
    * @param paymentAmount
    * @param ttl
    */
   public async issue(
-    account: RecipientType,
-    meta: Map<string, string>,
+    account: CLPublicKey,
+    token: GatewayToken,
     paymentAmount = MINT_PAYMENT_AMOUNT,
     ttl = DEFAULT_TTL
-  ) : Promise<DeployUtil.Deploy> {
+  ): Promise<string> {
     const tokenId = CLValueBuilder.option(None, CLTypeBuilder.string());
     const runtimeArgs = RuntimeArgs.fromMap({
       recipient: utils.createRecipientAddress(account),
       token_id: tokenId,
-      token_meta: toCLMap(meta),
+      token_meta: token.toClMap(),
     });
 
-    const deployHash = await contractCall({
+    return contractCall({
       chainName: this.chainName,
       contractHash: this.contractHash,
       entryPoint: "mint_one",
-      paymentAmount,
-      nodeAddress: this.nodeAddress,
       keys: this.masterKey,
+      nodeAddress: this.nodeAddress,
+      paymentAmount,
       runtimeArgs,
       ttl
     });
-
-    if (deployHash !== null) {
-      this.addPendingDeploy(CEP47Events.MintOne, deployHash);
-      return this.confirmDeploy(deployHash);
-    } else {
-      throw Error("Invalid Deploy");
-    }
   }
 
-
-   async updateTokenMetadata(
-    tokenId: string,
-    meta: Map<string, string>,
+  async updateTokenMetadata(
+    token: GatewayToken,
     paymentAmount: string,
     ttl = DEFAULT_TTL
-  ) {
+  ): Promise<string> {
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_id: CLValueBuilder.string(tokenId),
-      token_meta: toCLMap(meta),
+      token_id: CLValueBuilder.string(token.tokenId),
+      token_meta: token.toClMap(),
     });
 
-    const deployHash = await contractCall({
+    return contractCall({
       chainName: this.chainName,
       contractHash: this.contractHash,
       entryPoint: "update_token_metadata",
@@ -247,43 +245,21 @@ export class KycTokenClient {
       runtimeArgs,
       ttl
     });
-
-    if (deployHash !== null) {
-      this.addPendingDeploy(CEP47Events.MetadataUpdate, deployHash);
-      return deployHash;
-    } else {
-      throw Error("Invalid Deploy");
-    }
   }
 
-   async burnOne(
-    account: RecipientType,
-    tokenId: string,
+  async updateState(
+    account: CLPublicKey,
+    state: State,
     paymentAmount: string,
-    ttl = DEFAULT_TTL
-  ) {
-    const runtimeArgs = RuntimeArgs.fromMap({
-      owner: utils.createRecipientAddress(account),
-      token_id: CLValueBuilder.string(tokenId),
-    });
-
-    const deployHash = await contractCall({
-      chainName: this.chainName,
-      contractHash: this.contractHash,
-      entryPoint: "burn_one",
-      keys: this.masterKey,
-      nodeAddress: this.nodeAddress,
-      paymentAmount,
-      runtimeArgs,
-      ttl
-    });
-
-    if (deployHash !== null) {
-      this.addPendingDeploy(CEP47Events.BurnOne, deployHash);
-      return deployHash;
-    } else {
-      throw Error("Invalid Deploy");
+  ): Promise<string> {
+    const kycToken = await this.getGatewayToken(account);
+    if (kycToken === undefined) {
+      throw Error(`KYC Token not found for account: ${account.toHex()}`);
     }
+    return this.updateTokenMetadata(
+      kycToken.withState(state),
+      paymentAmount
+    );
   }
 
   /**
@@ -292,24 +268,11 @@ export class KycTokenClient {
    * @param paymentAmount
    */
   public async revoke(
-      account: CLPublicKey,
-      paymentAmount = BURN_PAYMENT_AMOUNT,
-): Promise<DeployUtil.Deploy> {
-    // Call "revoke"
-    const tokensOf = await this.getTokensOf(account);
-    const tokenOneId = tokensOf[0];
-
-    const burnTokenOneDeployHash = await this.burnOne(
-        new CLAccountHash(account.toAccountHash()),
-        tokenOneId,
-        paymentAmount
-    );
-    console.log(
-        "... Revoke deploy hash: ",
-        burnTokenOneDeployHash
-    );
-    return this.confirmDeploy(burnTokenOneDeployHash);
-}
+    account: CLPublicKey,
+    paymentAmount = UPDATE_PAYMENT_AMOUNT,
+  ): Promise<string> {
+    return this.updateState(account, State.REVOKED, paymentAmount);
+  }
 
   /**
    * Freeze the KYC Token belonging to this account
@@ -318,22 +281,8 @@ export class KycTokenClient {
    */
   public async freeze(account: CLPublicKey,
                       paymentAmount = UPDATE_PAYMENT_AMOUNT
-  ): Promise<DeployUtil.Deploy> {
-    const tokensOf = await this.getTokensOf(account);
-    const tokenOneId = tokensOf[0];
-    const newTokenOneMetadata = new Map([
-      ["status", 'Frozen'],
-    ]);
-    const updatedTokenMetaDeployHash = await this.updateTokenMetadata(
-        tokenOneId,
-        newTokenOneMetadata,
-        paymentAmount
-    );
-    console.log(
-        "... freeze deploy hash: ",
-        updatedTokenMetaDeployHash
-    );
-    return this.confirmDeploy(updatedTokenMetaDeployHash);
+  ): Promise<string> {
+    return this.updateState(account, State.FROZEN, paymentAmount);
   }
 
   /**
@@ -341,25 +290,11 @@ export class KycTokenClient {
    * @param account
    * @param paymentAmount
    */
-  public async unfreeze(account: CLPublicKey,
-                        paymentAmount = UPDATE_PAYMENT_AMOUNT
-  ): Promise<DeployUtil.Deploy> {
-    // Call "unfreeze"
-    const tokensOf = await this.getTokensOf(account);
-    const tokenOneId = tokensOf[0];
-    const newTokenOneMetadata = new Map([
-      ["status", 'UnFrozen'],
-    ]);
-    const updatedTokenMetaDeployHash = await this.updateTokenMetadata(
-        tokenOneId,
-        newTokenOneMetadata,
-        paymentAmount
-    );
-    console.log(
-        "... unfreeze deploy hash: ",
-        updatedTokenMetaDeployHash
-    );
-    return this.confirmDeploy(updatedTokenMetaDeployHash);
+  public async unfreeze(
+    account: CLPublicKey,
+    paymentAmount = UPDATE_PAYMENT_AMOUNT
+  ): Promise<string> {
+    return this.updateState(account, State.ACTIVE, paymentAmount);
   }
 
   /**
@@ -368,163 +303,40 @@ export class KycTokenClient {
    * @param expireTime
    * @param paymentAmount
    */
-public async updateExpiry(
+  public async updateExpiry(
     account: CLPublicKey,
     expireTime: number,
     paymentAmount = UPDATE_PAYMENT_AMOUNT
-): Promise<DeployUtil.Deploy> {
-  // Call updateExpiry on token
-  const tokensOf = await this.getTokensOf(account);
-  const tokenOneId = tokensOf[0];
-  // TODO: Confirm with Casper/Civic what this looks like
-  const newTokenOneMetadata = new Map([
-    ["expiry", expireTime.toString()],
-  ]);
-  const updatedTokenMetaDeployHash = await this.updateTokenMetadata(
-      tokenOneId,
-      newTokenOneMetadata,
+  ): Promise<string> {
+    const kycToken = await this.getGatewayToken(account);
+    if (kycToken === undefined) {
+      throw Error(`KYC Token not found for account: ${account.toHex()}`);
+    }
+    return this.updateTokenMetadata(
+      kycToken.withExpiry(expireTime),
       paymentAmount
-  );
-  console.log(
-      "... update expiry deploy hash: ",
-      updatedTokenMetaDeployHash
-  );
-  return this.confirmDeploy(updatedTokenMetaDeployHash);
-}
-
-  async sleep(ms: number) : Promise<unknown>{
-    return new Promise(resolve => setTimeout(resolve, ms));
+    );
   }
 
-   async confirmDeploy(deployHash: string) : Promise<DeployUtil.Deploy> {
+  /**
+   * Confirm that the given hash has been deployed, poll this till either an exception is thrown indicating error
+   * or a valid deployment result is returned
+   * @param deployHash
+   */
+  public async confirmDeploy(deployHash: string): Promise<DeployUtil.Deploy | undefined> {
     const client = new CasperClient(this.nodeAddress);
-    let i = 300;
-    while (i !== 0) {
-      const [deploy, raw] = await client.getDeploy(deployHash);
-      if (raw.execution_results.length !== 0){
+    const [deploy, raw] = await client.getDeploy(deployHash);
+    if (raw.execution_results.length !== 0) {
+      // @ts-ignore
+      if (raw.execution_results[0].result.Success) {
+        return new Promise((resolve) => resolve(deploy));
+      } else {
         // @ts-ignore
-        if (raw.execution_results[0].result.Success) {
-          return deploy;
-        } else {
-          // @ts-ignore
-          throw Error("Contract execution: " + raw.execution_results[0].result.Failure.error_message);
-        }
-      } else {
-        i--;
-        await this.sleep(1000);
-        continue;
+        throw Error("Contract execution: " + raw.execution_results[0].result.Failure.error_message);
       }
     }
-    throw Error('Timeout after ' + i + 's. Something\'s wrong');
-  }
 
-  public onEvent(
-    eventNames: CEP47Events[],
-    callback: (
-      eventName: CEP47Events,
-      deployStatus: {
-        deployHash: string;
-        success: boolean;
-        error: string | null;
-      },
-      result: any | null
-    ) => void
-  ): any {
-    if (!this.eventStreamAddress) {
-      throw Error("Please set eventStreamAddress before!");
-    }
-    if (this.isListening) {
-      throw Error(
-        "Only one event listener can be create at a time. Remove the previous one and start new."
-      );
-    }
-    const es = new EventStream(this.eventStreamAddress);
-    this.isListening = true;
-
-    es.subscribe(EventName.DeployProcessed, (value: any) => {
-      const deployHash = value.body.DeployProcessed.deploy_hash;
-
-      const pendingDeploy = this.pendingDeploys.find(
-        (pending) => pending.deployHash === deployHash
-      );
-
-      if (!pendingDeploy) {
-        return;
-      }
-
-      if (
-        !value.body.DeployProcessed.execution_result.Success &&
-        value.body.DeployProcessed.execution_result.Failure
-      ) {
-        callback(
-          pendingDeploy.deployType,
-          {
-            deployHash,
-            error:
-              value.body.DeployProcessed.execution_result.Failure.error_message,
-            success: false,
-          },
-          null
-        );
-      } else {
-        const { transforms } =
-          value.body.DeployProcessed.execution_result.Success.effect;
-
-        const cep47Events = transforms.reduce((acc: any, val: any) => {
-          if (
-            val.transform.hasOwnProperty("WriteCLValue") &&
-            typeof val.transform.WriteCLValue.parsed === "object" &&
-            val.transform.WriteCLValue.parsed !== null
-          ) {
-            const maybeCLValue = CLValueParsers.fromJSON(
-              val.transform.WriteCLValue
-            );
-            const clValue = maybeCLValue.unwrap();
-            if (clValue && clValue instanceof CLMap) {
-              const hash = clValue.get(
-                CLValueBuilder.string("contract_package_hash")
-              );
-              const event = clValue.get(CLValueBuilder.string("event_type"));
-              if (
-                hash &&
-                hash.value() === this.contractPackageHash &&
-                event &&
-                eventNames.includes(event.value())
-              ) {
-                acc = [...acc, { name: event.value(), clValue }];
-              }
-            }
-          }
-          return acc;
-        }, []);
-
-        cep47Events.forEach((d: any) =>
-          callback(
-            d.name,
-            { deployHash, error: null, success: true },
-            d.clValue
-          )
-        );
-      }
-
-      this.pendingDeploys = this.pendingDeploys.filter(
-        (pending) => pending.deployHash !== deployHash
-      );
-    });
-    es.start();
-
-    return {
-      stopListening: () => {
-        es.unsubscribe(EventName.DeployProcessed);
-        es.stop();
-        this.isListening = false;
-        this.pendingDeploys = [];
-      },
-    };
-  }
-
-  private addPendingDeploy(deployType: CEP47Events, deployHash: string) {
-    this.pendingDeploys = [...this.pendingDeploys, { deployHash, deployType }];
+    return new Promise((resolve) => resolve(undefined));
   }
 }
 
@@ -541,15 +353,15 @@ interface IContractCallParams {
 }
 
 const contractCall = async ({
-  nodeAddress,
-  keys,
-  chainName,
-  contractHash,
-  entryPoint,
-  runtimeArgs,
-  paymentAmount,
-  ttl
-}: IContractCallParams) => {
+                              nodeAddress,
+                              keys,
+                              chainName,
+                              contractHash,
+                              entryPoint,
+                              runtimeArgs,
+                              paymentAmount,
+                              ttl
+                            }: IContractCallParams) => {
   const client = new CasperClient(nodeAddress);
   const contractHashAsByteArray = utils.contractHashToByteArray(contractHash);
 
@@ -567,9 +379,7 @@ const contractCall = async ({
   deploy = client.signDeploy(deploy, keys);
 
   // Dispatch deploy to node.
-  const deployHash = await client.putDeploy(deploy);
-
-  return deployHash;
+  return await client.putDeploy(deploy);
 };
 
 const contractSimpleGetter = async (
@@ -590,23 +400,4 @@ const contractSimpleGetter = async (
   } else {
     throw Error("Invalid stored value");
   }
-};
-
-const toCLMap = (map: Map<string, string>) => {
-  const clMap = CLValueBuilder.map([
-    CLTypeBuilder.string(),
-    CLTypeBuilder.string(),
-  ]);
-  for (const [key, value] of Array.from(map.entries())) {
-    clMap.set(CLValueBuilder.string(key), CLValueBuilder.string(value));
-  }
-  return clMap;
-};
-
-const fromCLMap = (map: Map<CLString, CLString>) => {
-  const jsMap = new Map();
-  for (const [key, value] of Array.from(map.entries())) {
-    jsMap.set(key.value(), value.value());
-  }
-  return jsMap;
 };
