@@ -1,33 +1,33 @@
-import CEP47Client from "./cep47-client";
+import KycTokenClient from "./kyc-token-client";
 // import * as utils from "./utils";
 // import * as constants from "./constants";
-import { config } from "dotenv";
-config();
+// import { config } from "dotenv";
+// config();
 import {
     CLAccountHash,
     CLPublicKey, Keys,
 } from "casper-js-sdk";
-import {getDeploy} from "../test/utils";
+// import {getDeploy} from "../test/utils";
 
-const {
-    NODE_ADDRESS,
-    EVENT_STREAM_ADDRESS,
-    CHAIN_NAME,
-    MASTER_KEY_PAIR_PATH,
-    BURN_ONE_PAYMENT_AMOUNT,
-    MINT_ONE_PAYMENT_AMOUNT,
-} = process.env;
-
-const KEYS = Keys.Ed25519.parseKeyFiles(
-    `${MASTER_KEY_PAIR_PATH}/public_key.pem`,
-    `${MASTER_KEY_PAIR_PATH}/secret_key.pem`
-);
-
-const cep47 = new CEP47Client(
-    NODE_ADDRESS!,
-    CHAIN_NAME!,
-    EVENT_STREAM_ADDRESS!
-);
+// const {
+//     NODE_ADDRESS,
+//     EVENT_STREAM_ADDRESS,
+//     CHAIN_NAME,
+//     MASTER_KEY_PAIR_PATH,
+//     BURN_ONE_PAYMENT_AMOUNT,
+//     MINT_ONE_PAYMENT_AMOUNT,
+// } = process.env;
+//
+// const KEYS = Keys.Ed25519.parseKeyFiles(
+//     `${MASTER_KEY_PAIR_PATH}/public_key.pem`,
+//     `${MASTER_KEY_PAIR_PATH}/secret_key.pem`
+// );
+//
+// const cep47 = new KycTokenClient(
+//     NODE_ADDRESS!,
+//     CHAIN_NAME!,
+//     EVENT_STREAM_ADDRESS!
+// );
 
 export class GatekeeperService {
     /**
@@ -89,7 +89,6 @@ export class GatekeeperService {
     issue(recipient: CLPublicKey): Promise<GatewayToken> {
         return this.issueVanilla(recipient);
     }
-
     /**
      * Revoke the gateway token. The token must have been issued by a gatekeeper in the same network
      * @param gatewayTokenKey
@@ -110,30 +109,31 @@ export class GatekeeperService {
         console.log("... Token burnt successfully");
     }
 
+
     /**
      * Freeze the gateway token. The token must have been issued by this gatekeeper.
      * @param gatewayTokenKey
      */
     async freeze(gatewayTokenKey: CLPublicKey): Promise<GatewayToken> {
         // Call "freeze"
-        let tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        tokensOf = await cep47.getTokensOf(gatewayTokenKey);
-        const tokenOneId = tokensOf[0];
-        const newTokenOneMetadata = new Map([
-            ["status", 'Frozen'],
-        ]);
-        let updatedTokenMetaDeployHash = await cep47.updateTokenMetadata(
-            KEYS,
-            tokenOneId,
-            newTokenOneMetadata,
-            MINT_ONE_PAYMENT_AMOUNT!
-        );
-        console.log(
-            "... Update token metadata deploy hash: ",
-            updatedTokenMetaDeployHash
-        );
-        await getDeploy(NODE_ADDRESS!, updatedTokenMetaDeployHash);
-        console.log("... Token metadata updated sucessfully");
+        let tokensOf = await cep47.freeze(gatewayTokenKey);
+        // tokensOf = await cep47.getTokensOf(gatewayTokenKey);
+        // const tokenOneId = tokensOf[0];
+        // const newTokenOneMetadata = new Map([
+        //     ["status", 'Frozen'],
+        // ]);
+        // let updatedTokenMetaDeployHash = await cep47.updateTokenMetadata(
+        //     KEYS,
+        //     tokenOneId,
+        //     newTokenOneMetadata,
+        //     MINT_ONE_PAYMENT_AMOUNT!
+        // );
+        // console.log(
+        //     "... Update token metadata deploy hash: ",
+        //     updatedTokenMetaDeployHash
+        // );
+        // await getDeploy(NODE_ADDRESS!, updatedTokenMetaDeployHash);
+        // console.log("... Token metadata updated sucessfully");
     }
 
     /**
