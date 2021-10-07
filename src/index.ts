@@ -29,6 +29,8 @@ import {
 //     EVENT_STREAM_ADDRESS!
 // );
 //
+export * from "./kyc-token-client"
+export * from './gateway-token'
 // export class GatekeeperService {
 //     /**
 //      * Construct a new GatekeeperService instance
