@@ -27,7 +27,7 @@ import { RecipientType, IPendingDeploy } from "./types";
 import { concat } from '@ethersproject/bytes';
 import blake from "blakejs";
 
-class KycTokenClient {
+export class KycTokenClient {
   private contractHash: string;
   private contractPackageHash: string;
   private namedKeys: {
@@ -582,5 +582,3 @@ const fromCLMap = (map: Map<CLString, CLString>) => {
   }
   return jsMap;
 };
-
-export default KycTokenClient;
