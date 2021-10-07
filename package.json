@@ -1,6 +1,6 @@
 {
-  "name": "casper-cep47-js-client",
-  "version": "0.5.1",
+  "name": "@metacask/kyc-token-client",
+  "version": "0.0.2",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
