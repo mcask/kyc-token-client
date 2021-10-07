@@ -1,6 +1,6 @@
 {
   "name": "@metacask/kyc-token-client",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
