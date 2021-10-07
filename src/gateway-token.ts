@@ -1,9 +1,9 @@
 import {CLMap, CLPublicKey, CLTypeBuilder, CLValue, CLValueBuilder} from "casper-js-sdk";
 
 export enum State {
-  ACTIVE = "ACTIVE",
-  REVOKED = "REVOKED",
-  FROZEN = "FROZEN",
+  ACTIVE = "Active",
+  REVOKED = "Revoked",
+  FROZEN = "Frozen",
 }
 
 export class GatewayToken {
@@ -13,7 +13,7 @@ export class GatewayToken {
       CLPublicKey.fromHex(meta.get('issuer')!),
       meta.get('network')!,
       account,
-      meta.get('state')! as State,
+      meta.get('status')! as State,
       meta.get('expiry'),
       tokenId
     )
@@ -25,14 +25,14 @@ export class GatewayToken {
     // Contract hash of the KYC Token <-- hardcode based on deployment in whichever network(test/main)
     readonly gatekeeperNetwork: string,
     readonly account: CLPublicKey,
-    readonly state: State,
+    readonly status: State,
     readonly expiryTime?: string,
     readonly tokenId?: string,
   ) {
   }
 
   public isValid(): boolean {
-    return this.state === State.ACTIVE && !this.hasExpired();
+    return this.status === State.ACTIVE && !this.hasExpired();
   }
 
   public hasExpired(): boolean {
@@ -47,7 +47,7 @@ export class GatewayToken {
     ]);
     clMap.set(CLValueBuilder.string("issuer"), CLValueBuilder.string(this.issuingGatekeeper.toHex()));
     clMap.set(CLValueBuilder.string("network"), CLValueBuilder.string(this.gatekeeperNetwork));
-    clMap.set(CLValueBuilder.string("state"), CLValueBuilder.string(this.state));
+    clMap.set(CLValueBuilder.string("status"), CLValueBuilder.string(this.status));
     if (this.expiryTime) {
       clMap.set(CLValueBuilder.string("expiry"), CLValueBuilder.string(this.expiryTime));
     }
@@ -63,7 +63,7 @@ export class GatewayToken {
       this.issuingGatekeeper,
       this.gatekeeperNetwork,
       this.account,
-      this.state,
+      this.status,
       expiryTime,
       this.tokenId,
     )

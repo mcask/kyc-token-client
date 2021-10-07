@@ -1,6 +1,6 @@
 {
   "name": "@metacask/kyc-token-client",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
@@ -23,7 +23,7 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "casper-js-sdk": "2.5.2",
+    "casper-js-sdk": "2.6.0",
     "ts-results": "^3.3.0"
   }
 }

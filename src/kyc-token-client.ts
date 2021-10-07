@@ -167,25 +167,53 @@ export class KycTokenClient {
   }
 
   /**
-   * This is a contract level function, where we request a new minter to be whitelisted
+   * This is a contract level function, where we request a new gatekeeper to be whitelisted
    * @param account
    * @param paymentAmount
    * @param ttl
    */
-  public async whitelist(
+  public async addGatekeeper(
     account: CLPublicKey,
     paymentAmount = WHITELIST_PAYMENT_AMOUNT,
     ttl = DEFAULT_TTL
   ): Promise<string> {
     // New minter to add
     const runtimeArgs = RuntimeArgs.fromMap({
-      minter: utils.createRecipientAddress(account),
+      gatekeeper: utils.createRecipientAddress(account),
     });
 
     return contractCall({
       chainName: this.chainName,
       contractHash: this.contractHash,
-      entryPoint: "grant_minter",
+      entryPoint: "grant_gatekeeper",
+      keys: this.masterKey,
+      nodeAddress: this.nodeAddress,
+      paymentAmount,
+      runtimeArgs,
+      ttl
+    });
+  }
+
+  /**
+   * This is a contract level function, where we request a gatekeeper to be removed
+   * @param account
+   * @param paymentAmount
+   * @param ttl
+   */
+  public async revokeGatekeeper(
+    account: CLPublicKey,
+    paymentAmount = WHITELIST_PAYMENT_AMOUNT,
+    ttl = DEFAULT_TTL
+  ): Promise<string> {
+    // New minter to add
+    const runtimeArgs = RuntimeArgs.fromMap({
+      gatekeeper: utils.createRecipientAddress(account),
+    });
+
+    return contractCall({
+      chainName: this.chainName,
+      contractHash: this.contractHash,
+      entryPoint: "revoke_gatekeeper",
       keys: this.masterKey,
       nodeAddress: this.nodeAddress,
       paymentAmount,
@@ -217,7 +245,7 @@ export class KycTokenClient {
     return contractCall({
       chainName: this.chainName,
       contractHash: this.contractHash,
-      entryPoint: "mint_one",
+      entryPoint: "mint",
       keys: this.masterKey,
       nodeAddress: this.nodeAddress,
       paymentAmount,
@@ -241,15 +269,11 @@ export class KycTokenClient {
     if (!kycToken) {
       throw Error(`KYC Token not found for account: ${account.toHex()}`);
     }
-    const meta = CLValueBuilder.map([
-      CLTypeBuilder.string(),
-      CLTypeBuilder.string(),
-    ]);
-    meta.set(CLValueBuilder.string("state"), CLValueBuilder.string(state));
 
     return this.updateTokenMetadata(
       kycToken,
-      meta,
+      CLValueBuilder.string("state"),
+      CLValueBuilder.string(state),
       paymentAmount
     );
   }
@@ -306,14 +330,10 @@ export class KycTokenClient {
     }
     // Check what we need to do here
     if (expireTime) {
-      const meta = CLValueBuilder.map([
-        CLTypeBuilder.string(),
-        CLTypeBuilder.string(),
-      ]);
-      meta.set(CLValueBuilder.string("expiry"), CLValueBuilder.string(expireTime));
       return this.updateTokenMetadata(
         kycToken,
-        meta,
+        CLValueBuilder.string("expiry"),
+        CLValueBuilder.string(expireTime),
         paymentAmount
       )
     }
@@ -406,13 +426,15 @@ export class KycTokenClient {
   /**
    * The update fundtion only needs the metadata that needs to change per Casper
    * @param token
-   * @param meta
+   * @param metaKey
+   * @param metaValue
    * @param paymentAmount
    * @param ttl
    */
   private async updateTokenMetadata(
     token: GatewayToken,
-    meta: CLMap<CLValue, CLValue>,
+    metaKey: CLValue,
+    metaValue: CLValue,
     paymentAmount: string,
     ttl = DEFAULT_TTL
   ): Promise<string> {
@@ -421,7 +443,8 @@ export class KycTokenClient {
     }
     const runtimeArgs = RuntimeArgs.fromMap({
       token_id: CLValueBuilder.string(token.tokenId),
-      token_meta: meta,
+      token_meta_key: metaKey,
+      token_meta_value: metaValue
     });
 
     return contractCall({
