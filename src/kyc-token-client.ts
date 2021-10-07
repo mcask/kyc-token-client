@@ -1,5 +1,7 @@
+import {concat} from '@ethersproject/bytes';
+import blake from "blakejs";
 import {
-  CasperClient,
+  CasperClient, CLMap,
   CLPublicKey,
   CLTypeBuilder,
   CLValue,
@@ -17,8 +19,6 @@ import {
 } from "./constants";
 import {GatewayToken, State} from "./gateway-token";
 import * as utils from "./utils";
-import {concat} from '@ethersproject/bytes';
-import blake from "blakejs";
 
 export class KycTokenClient {
   private namedKeys: {
@@ -132,7 +132,7 @@ export class KycTokenClient {
   public async getGatewayToken(account: CLPublicKey): Promise<GatewayToken | undefined> {
     const kycToken = await this.getKYCToken(account);
 
-    if (kycToken === undefined) {
+    if (!kycToken) {
       return new Promise((resolve) => resolve(undefined));
     }
 
@@ -201,14 +201,14 @@ export class KycTokenClient {
    * @param ttl
    */
   public async issue(
-    account: CLPublicKey,
     token: GatewayToken,
     paymentAmount = MINT_PAYMENT_AMOUNT,
     ttl = DEFAULT_TTL
   ): Promise<string> {
+    // By default no token id here!
     const tokenId = CLValueBuilder.option(None, CLTypeBuilder.string());
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient: utils.createRecipientAddress(account),
+      recipient: utils.createRecipientAddress(token.account),
       token_id: tokenId,
       token_meta: token.toClMap(),
     });
@@ -225,14 +225,56 @@ export class KycTokenClient {
     });
   }
 
-  async updateTokenMetadata(
+  /**
+   * The set function updates the entire metadata object
+   * @param token
+   * @param paymentAmount
+   * @param ttl
+   */
+  async setTokenMetadata(
     token: GatewayToken,
     paymentAmount: string,
     ttl = DEFAULT_TTL
   ): Promise<string> {
+    if (!token.tokenId) {
+      throw Error("Cannot set KYC Token Metadata with no id!");
+    }
     const runtimeArgs = RuntimeArgs.fromMap({
       token_id: CLValueBuilder.string(token.tokenId),
       token_meta: token.toClMap(),
+    });
+
+    return contractCall({
+      chainName: this.chainName,
+      contractHash: this.contractHash,
+      entryPoint: "set_token_meta",
+      keys: this.masterKey,
+      nodeAddress: this.nodeAddress,
+      paymentAmount,
+      runtimeArgs,
+      ttl
+    });
+  }
+
+  /**
+   * The update fundtion only needs the metadata that needs to change per Casper
+   * @param token
+   * @param meta
+   * @param paymentAmount
+   * @param ttl
+   */
+  async updateTokenMetadata(
+    token: GatewayToken,
+    meta: CLMap<CLValue, CLValue>,
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
+  ): Promise<string> {
+    if (!token.tokenId) {
+      throw Error("Cannot update KYC Token Metadata with no id!");
+    }
+    const runtimeArgs = RuntimeArgs.fromMap({
+      token_id: CLValueBuilder.string(token.tokenId),
+      token_meta: meta,
     });
 
     return contractCall({
@@ -247,17 +289,30 @@ export class KycTokenClient {
     });
   }
 
+  /**
+   * Update the state of the KYC Token in the given account
+   * @param account
+   * @param state
+   * @param paymentAmount
+   */
   async updateState(
     account: CLPublicKey,
     state: State,
     paymentAmount: string,
   ): Promise<string> {
     const kycToken = await this.getGatewayToken(account);
-    if (kycToken === undefined) {
+    if (!kycToken) {
       throw Error(`KYC Token not found for account: ${account.toHex()}`);
     }
+    const meta = CLValueBuilder.map([
+      CLTypeBuilder.string(),
+      CLTypeBuilder.string(),
+    ]);
+    meta.set(CLValueBuilder.string("state"), CLValueBuilder.string(state));
+
     return this.updateTokenMetadata(
-      kycToken.withState(state),
+      kycToken,
+      meta,
       paymentAmount
     );
   }
@@ -305,14 +360,28 @@ export class KycTokenClient {
    */
   public async updateExpiry(
     account: CLPublicKey,
-    expireTime: number,
+    expireTime?: string,
     paymentAmount = UPDATE_PAYMENT_AMOUNT
   ): Promise<string> {
     const kycToken = await this.getGatewayToken(account);
-    if (kycToken === undefined) {
+    if (!kycToken) {
       throw Error(`KYC Token not found for account: ${account.toHex()}`);
     }
-    return this.updateTokenMetadata(
+    // Check what we need to do here
+    if (expireTime) {
+      const meta = CLValueBuilder.map([
+        CLTypeBuilder.string(),
+        CLTypeBuilder.string(),
+      ]);
+      meta.set(CLValueBuilder.string("expiry"), CLValueBuilder.string(expireTime));
+      return this.updateTokenMetadata(
+        kycToken,
+        meta,
+        paymentAmount
+      )
+    }
+    // Expiry time removed, so reset the state completely
+    return this.setTokenMetadata(
       kycToken.withExpiry(expireTime),
       paymentAmount
     );
