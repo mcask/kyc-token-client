@@ -186,17 +186,12 @@ export class KycTokenClient {
   }
 
   public async issue(
-    keys: Keys.AsymmetricKey,
     recipient: RecipientType,
-    id: string | null,
     meta: Map<string, string>,
     paymentAmount: string,
     ttl = DEFAULT_TTL
   ) : Promise<DeployUtil.Deploy> {
-    const tokenId = id
-      ? CLValueBuilder.option(Some(CLValueBuilder.string(id)))
-      : CLValueBuilder.option(None, CLTypeBuilder.string());
-
+    const tokenId = CLValueBuilder.option(None, CLTypeBuilder.string());
     const runtimeArgs = RuntimeArgs.fromMap({
       recipient: utils.createRecipientAddress(recipient),
       token_id: tokenId,
@@ -209,7 +204,7 @@ export class KycTokenClient {
       entryPoint: "mint_one",
       paymentAmount,
       nodeAddress: this.nodeAddress,
-      keys: keys,
+      keys: this.masterKey,
       runtimeArgs,
       ttl
     });
