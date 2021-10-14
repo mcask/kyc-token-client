@@ -24,7 +24,6 @@ const KEYS = Keys.Ed25519.parseKeyFiles(
 );
 
 const test = async () => {
-  console.log('KEYS.publicKey:', KEYS.publicKey);
   const installDeployHash = '4052440507ff2c367c19ebfea6aa1692a4aaa0989aabddff508e48438f550590';
 
   await getDeploy(NODE_ADDRESS!, installDeployHash);
