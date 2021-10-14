@@ -24,9 +24,12 @@ export class KycTokenClient {
   private contractHash: string;
   private contractPackageHash: string;
   private namedKeys: {
+    admins: string;
+    allowances: string;
     balances: string;
+    gatekeepers: string;
     metadata: string;
-    // ownedTokens: string;
+    ownedIndexesByToken: string;
     ownedTokensByIndex: string;
     owners: string;
     issuers: string;
@@ -55,15 +58,19 @@ export class KycTokenClient {
     );
 
     const { contractPackageHash, namedKeys } = contractData.Contract!;
+
     this.contractHash = hash;
     this.contractPackageHash = contractPackageHash.replace(
       "contract-package-wasm",
       ""
     );
     const LIST_OF_NAMED_KEYS = [
+      "admins",
+      "allowances",
       "balances",
+      "gatekeepers",
       "metadata",
-      // "owned_tokens",
+      "owned_indexes_by_token",
       "owned_tokens_by_index",
       "owners",
       "issuers",
