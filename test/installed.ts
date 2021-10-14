@@ -36,7 +36,6 @@ const test = async () => {
       accountInfo,
       `${TOKEN_NAME!}_contract_hash`
     );
-
     console.log(`... Contract Hash: ${contractHash}`);
 
 
@@ -54,11 +53,20 @@ const test = async () => {
     const meta = await kycTokenClient.meta();
     console.log("meta: ", meta);
 
+    const totalSupply = await kycTokenClient.totalSupply();
+    console.log("totalSupply:", totalSupply);
+
     // const balance = await kycTokenClient.balanceOf(KEYS.publicKey);
     // console.log("balanceOf: ", balance);
 
-    const totalSupply = await kycTokenClient.totalSupply();
-    console.log("totalSupply:", totalSupply);
+    // const isPaused = await kycTokenClient.isPaused();
+    // console.log("isPaused:", isPaused);
+
+    const addGatekeeperHash = await kycTokenClient.addGatekeeper(KEYS.publicKey);
+    console.log('addGatekeeperHash:', addGatekeeperHash);
+
+    const revokeGatekeeperHash = await kycTokenClient.revokeGatekeeper(KEYS.publicKey);
+    console.log('revokeGatekeeperHash:', revokeGatekeeperHash);
 };
 
 test();
