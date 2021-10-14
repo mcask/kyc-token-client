@@ -1,6 +1,6 @@
-// ./casper-client put-deploy --chain-name 'casper-net-1' --node-address 'http://localhost:11101/rpc' --secret-key '/home/star/Desktop/casper/casper-node/utils/nctl/assets/net-1/faucet/secret_key.pem' --payment-amount 2500000000 --session-path '/home/star/Desktop/casper_dev/civic-contract/target/wasm32-unknown-unknown/release/civic-token.wasm' --session-arg "name:string='CIVIC_TOKEN'" --session-arg "symbol:string='CVC'" --session-arg "meta:string=''" --session-arg "admin:key='account-hash-f760757c6fedeac6a2a39efad5c9b133bb3b9f03f18b8fac07441577f8a36bad'" --session-arg "contract_name:string='CivicKycToken'"
+// ./casper-client put-deploy --chain-name 'casper-net-1' --node-address 'http://localhost:11101/rpc' --secret-key '/home/star/Desktop/casper/casper-node/utils/nctl/assets/net-1/faucet/secret_key.pem' --payment-amount 200000000000 --session-path '/home/star/Desktop/casper_dev/civic-contract/target/wasm32-unknown-unknown/release/civic-token.wasm' --session-arg "name:string='CIVIC_TOKEN'" --session-arg "symbol:string='CVC'" --session-arg "meta:string=''" --session-arg "admin:key='account-hash-f760757c6fedeac6a2a39efad5c9b133bb3b9f03f18b8fac07441577f8a36bad'" --session-arg "contract_name:string='CivicKycToken'"
 
-// ./casper-client get-deploy '4c09411a1fe68120a533fa2a65386a1c6d3fa66dc7d11dcf52178d6dd2c66d96' --node-address http://localhost:11101/rpc
+// ./casper-client get-deploy 'a0b0a9eac10ddad2541ae49f9695b6aa905e0467efc0ac6aff665338f2005961' --node-address http://localhost:11101/rpc
 
 import { config } from "dotenv";
 config();
@@ -14,9 +14,9 @@ import {
   CLPublicKeyType,
 } from "casper-js-sdk";
 
-const MASTER_KEY_PAIR_PATH = '/home/star/Desktop/casper/casper-node/utils/nctl/assets/net-1/faucet/';
+const MASTER_KEY_PAIR_PATH = '/home/star/Desktop/casper/casper-node/utils/nctl/assets/net-1/faucet';
 const NODE_ADDRESS = 'http://localhost:11101/rpc';
-const TOKEN_NAME = 'CIVIC_TOKEN';
+const TOKEN_NAME = 'CivicKycToken';
 
 const KEYS = Keys.Ed25519.parseKeyFiles(
   `${MASTER_KEY_PAIR_PATH}/public_key.pem`,
@@ -24,7 +24,8 @@ const KEYS = Keys.Ed25519.parseKeyFiles(
 );
 
 const test = async () => {
-  const installDeployHash = 'a732eae4c74f1e56c049c9238250bea8eb132a78ce393d50a80aae257f4c0f9a';
+  console.log('KEYS.publicKey:', KEYS.publicKey);
+  const installDeployHash = '4052440507ff2c367c19ebfea6aa1692a4aaa0989aabddff508e48438f550590';
 
   await getDeploy(NODE_ADDRESS!, installDeployHash);
 
@@ -37,7 +38,7 @@ const test = async () => {
 
   const contractHash = await getAccountNamedKeyValue(
     accountInfo,
-    `${TOKEN_NAME!}_contract`
+    `${TOKEN_NAME!}_contract_hash`
   );
 
   console.log(`... Contract Hash: ${contractHash}`);

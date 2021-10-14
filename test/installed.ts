@@ -17,7 +17,7 @@ const test = async () => {
         `${MASTER_KEY_PAIR_PATH}/secret_key.pem`
       );
 
-    const kycTokenClient = new KycTokenClient('http://localhost:11101/rpc', 'casper-net-1', '4c09411a1fe68120a533fa2a65386a1c6d3fa66dc7d11dcf52178d6dd2c66d96', KEYS);
+    const kycTokenClient = new KycTokenClient('http://localhost:11101/rpc', 'casper-net-1', 'ec3af59f705f661ed1c59ac6c57ddb1a538a0964a2959b7b45914f4fafaa2e22', KEYS);
     const name = await kycTokenClient.name();
     console.log("name: ", name);
 };
