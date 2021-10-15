@@ -21,9 +21,9 @@ import {GatewayToken, State} from "./gateway-token";
 import * as utils from "./utils";
 
 export class KycTokenClient {
-  private contractHash: string;
-  private contractPackageHash: string;
-  private namedKeys: {
+  private contractHash!: string;
+  private contractPackageHash!: string;
+  private namedKeys!: {
     admins: string;
     allowances: string;
     balances: string;
