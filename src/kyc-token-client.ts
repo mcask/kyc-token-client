@@ -403,7 +403,7 @@ export class KycTokenClient {
     return new Promise((resolve) => resolve(undefined));
   }
 
-  private async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
+  public async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
     const accountKey = utils.createRecipientAddress(account);
     const accountBytes = CLValueParsers.toBytes(accountKey).unwrap();
     const balanceOri = await this.balanceOf(account);
@@ -469,7 +469,7 @@ export class KycTokenClient {
    * @param paymentAmount
    * @param ttl
    */
-  private async updateTokenMetadata(
+  public async updateTokenMetadata(
     token: GatewayToken,
     metaKey: CLValue,
     metaValue: CLValue,

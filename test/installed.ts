@@ -73,6 +73,28 @@ const test = async () => {
 
     const mintHash = await kycTokenClient.issue(gatewayToken);
     console.log('mintHash:', mintHash);
+
+    // const updateStateHash = await kycTokenClient.updateState(KEYS.publicKey, State.FROZEN, "2000000000");
+    // console.log('updateStateHash:', updateStateHash);
+
+    // const revokeHash = await kycTokenClient.revoke(KEYS.publicKey);
+    // console.log('revokeHash:', revokeHash);
+    
+    // const freezeHash = await kycTokenClient.freeze(KEYS.publicKey);
+    // console.log('freezeHash:', freezeHash);
+    
+    // const unfreezeHash = await kycTokenClient.unfreeze(KEYS.publicKey);
+    // console.log('unfreezeHash:', unfreezeHash);
+    
+    // const updateExpiryHash = await kycTokenClient.updateExpiry(KEYS.publicKey, "1674284876");
+    // console.log('updateExpiryHash:', updateExpiryHash);
+
+    
+    // const confirmDeployHash = await kycTokenClient.confirmDeploy(installDeployHash);
+    // console.log('confirmDeployHash:', confirmDeployHash);
+
+    // const token = await kycTokenClient.getKYCToken(KEYS.publicKey);
+    // console.log('token:', token);
 };
 
 test();
