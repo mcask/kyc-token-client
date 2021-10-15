@@ -3,6 +3,7 @@
   "version": "0.0.9",
   "description": "",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test:install": "ts-node test/install.ts",
     "test:installed": "ts-node test/installed.ts",
