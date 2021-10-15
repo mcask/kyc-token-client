@@ -49,10 +49,10 @@ export const getStateRootHash = async (nodeAddress: string) => {
   }
 };
 
-export const getAccountInfo = async (
+export const getAccountInfo2 = async (
   nodeAddress: string,
   publicKey: CLPublicKey
-) => {
+): Promise<any> => {
   const stateRootHash = await getStateRootHash(nodeAddress);
   const client = new CasperServiceByJsonRPC(nodeAddress);
   const accountHash = publicKey.toAccountHashStr();

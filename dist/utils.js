@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
+exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo2 = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
 var casper_js_sdk_1 = require("casper-js-sdk");
 var fs_1 = __importDefault(require("fs"));
 exports.camelCased = function (myString) {
@@ -87,7 +87,7 @@ exports.getStateRootHash = function (nodeAddress) { return __awaiter(void 0, voi
         }
     });
 }); };
-exports.getAccountInfo = function (nodeAddress, publicKey) { return __awaiter(void 0, void 0, void 0, function () {
+exports.getAccountInfo2 = function (nodeAddress, publicKey) { return __awaiter(void 0, void 0, void 0, function () {
     var stateRootHash, client, accountHash, blockState;
     return __generator(this, function (_a) {
         switch (_a.label) {
