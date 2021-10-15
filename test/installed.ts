@@ -5,7 +5,7 @@ import {
   CLAccountHash,
   CLPublicKeyType,
 } from "casper-js-sdk";
-import { KycTokenClient } from '../src';
+import { KycTokenClient, GatewayToken, State } from '../src';
 import { getDeploy } from "./utils";
 import { getAccountInfo, getAccountNamedKeyValue } from "../src/utils";
 
@@ -21,7 +21,7 @@ const KEYS = Keys.Ed25519.parseKeyFiles(
 const test = async () => {
     console.log('Testing kyc token client');
 
-    const installDeployHash = '4052440507ff2c367c19ebfea6aa1692a4aaa0989aabddff508e48438f550590';
+    const installDeployHash = '947894b9c4a4a7526c3427293f39580b7334e2cbc86f53eb05a561ce6ca3f038';
 
     await getDeploy(NODE_ADDRESS!, installDeployHash);
 
@@ -67,6 +67,12 @@ const test = async () => {
 
     const revokeGatekeeperHash = await kycTokenClient.revokeGatekeeper(KEYS.publicKey);
     console.log('revokeGatekeeperHash:', revokeGatekeeperHash);
+
+    const gatewayToken = new GatewayToken(KEYS.publicKey, 'test', KEYS.publicKey, State.ACTIVE, "1834284876");
+    // console.log('gatewayToken:', gatewayToken);
+
+    const mintHash = await kycTokenClient.issue(gatewayToken);
+    console.log('mintHash:', mintHash);
 };
 
 test();
