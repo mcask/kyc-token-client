@@ -8,6 +8,9 @@ import {
 } from "casper-js-sdk";
 import fs from "fs";
 
+export const camelCased = (myString: string) =>
+  myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+
 export const createRecipientAddress = (recipient: CLPublicKey): CLKey => {
   return new CLKey(new CLAccountHash(recipient.toAccountHash()));
 };

@@ -21,10 +21,15 @@ import {GatewayToken, State} from "./gateway-token";
 import * as utils from "./utils";
 
 export class KycTokenClient {
+  private contractHash: string;
+  private contractPackageHash: string;
   private namedKeys: {
+    admins: string;
+    allowances: string;
     balances: string;
+    gatekeepers: string;
     metadata: string;
-    // ownedTokens: string;
+    ownedIndexesByToken: string;
     ownedTokensByIndex: string;
     owners: string;
     issuers: string;
@@ -35,17 +40,50 @@ export class KycTokenClient {
    * Construct the KYC Token Client
    * @param nodeAddress
    * @param chainName
-   * @param contractHash - this is the deployed address of the KYC Token Contract
    * @param masterKey - keypair which is allowed to make changes to the KYC Token
    */
   constructor(
     private nodeAddress: string,
     private chainName: string,
-    private contractHash: string,
     private masterKey: Keys.AsymmetricKey
   ) {
   }
 
+  public async setContractHash(hash: string) {
+    const stateRootHash = await utils.getStateRootHash(this.nodeAddress);
+    const contractData = await utils.getContractData(
+      this.nodeAddress,
+      stateRootHash,
+      hash
+    );
+
+    const { contractPackageHash, namedKeys } = contractData.Contract!;
+
+    this.contractHash = hash;
+    this.contractPackageHash = contractPackageHash.replace(
+      "contract-package-wasm",
+      ""
+    );
+    const LIST_OF_NAMED_KEYS = [
+      "admins",
+      "allowances",
+      "balances",
+      "gatekeepers",
+      "metadata",
+      "owned_indexes_by_token",
+      "owned_tokens_by_index",
+      "owners",
+      "issuers",
+      "paused",
+    ];
+    // @ts-ignore
+    this.namedKeys = namedKeys.reduce((acc, val) => {
+      if (LIST_OF_NAMED_KEYS.includes(val.name)) {
+        return { ...acc, [utils.camelCased(val.name)]: val.key };
+      }
+      return acc;
+    }, {});
+  }
 
   public async name() {
     const result = await contractSimpleGetter(
@@ -88,7 +126,7 @@ export class KycTokenClient {
       accountHash,
       this.namedKeys.balances
     );
-    const maybeValue = result.value().unwrap();
+    const maybeValue = result?.value().unwrap();
     return maybeValue.value().toString();
   }
 
@@ -365,7 +403,7 @@ export class KycTokenClient {
     return new Promise((resolve) => resolve(undefined));
   }
 
-  private async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
+  public async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
     const accountKey = utils.createRecipientAddress(account);
     const accountBytes = CLValueParsers.toBytes(accountKey).unwrap();
     const balanceOri = await this.balanceOf(account);
@@ -431,7 +469,7 @@ export class KycTokenClient {
    * @param paymentAmount
    * @param ttl
    */
-  private async updateTokenMetadata(
+  public async updateTokenMetadata(
     token: GatewayToken,
     metaKey: CLValue,
     metaValue: CLValue,
