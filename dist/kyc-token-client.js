@@ -325,20 +325,16 @@ class KycTokenClient {
         const accountBytes = casper_js_sdk_1.CLValueParsers.toBytes(accountKey).unwrap();
         const balanceOri = await this.balanceOf(account);
         const balance = parseInt(balanceOri, 10);
-        for (let i = 0; i < balance; i++) {
-            const numBytes = casper_js_sdk_1.CLValueParsers.toBytes(casper_js_sdk_1.CLValueBuilder.u256(i)).unwrap();
+        if (balance !== 0) {
+            const numBytes = casper_js_sdk_1.CLValueParsers.toBytes(casper_js_sdk_1.CLValueBuilder.u256(0)).unwrap();
             const concated = bytes_1.concat([accountBytes, numBytes]);
             const blaked = blakejs_1.default.blake2b(concated, undefined, 32);
             const str = Buffer.from(blaked).toString("hex");
-            // Check if the token contract has matches the KYC Token contract hash
-            if (str === this.contractHash) {
-                const result = await utils.contractDictionaryGetter(this.nodeAddress, str, this.namedKeys.ownedTokensByIndex);
-                const maybeValue = result.value().unwrap();
-                return new Promise((resolve) => resolve(maybeValue.value()));
-            }
+            const result = await utils.contractDictionaryGetter(this.nodeAddress, str, this.namedKeys.ownedTokensByIndex);
+            const maybeValue = result.value().unwrap();
+            return new Promise((resolve) => resolve(maybeValue.value()));
         }
         return new Promise((resolve) => resolve(undefined));
-        ;
     }
     /**
      * The set function updates the entire metadata object

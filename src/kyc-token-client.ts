@@ -465,25 +465,21 @@ export class KycTokenClient {
     const balanceOri = await this.balanceOf(account);
     const balance = parseInt(balanceOri, 10);
 
-    for (let i = 0; i < balance; i++) {
-      const numBytes = CLValueParsers.toBytes(CLValueBuilder.u256(i)).unwrap();
+    if (balance !== 0) {
+      const numBytes = CLValueParsers.toBytes(CLValueBuilder.u256(0)).unwrap();
       const concated = concat([accountBytes, numBytes]);
       const blaked = blake.blake2b(concated, undefined, 32)
       const str = Buffer.from(blaked).toString("hex");
-      // Check if the token contract has matches the KYC Token contract hash
-      if (str === this.contractHash) {
-        const result = await utils.contractDictionaryGetter(
-          this.nodeAddress,
-          str,
-          this.namedKeys.ownedTokensByIndex
-        );
-        const maybeValue = result.value().unwrap();
-        return new Promise((resolve) => resolve(maybeValue.value()));
-      }
+      const result = await utils.contractDictionaryGetter(
+        this.nodeAddress,
+        str,
+        this.namedKeys.ownedTokensByIndex
+      );
+      const maybeValue = result.value().unwrap();
+      return new Promise((resolve) => resolve(maybeValue.value()));
     }
 
     return new Promise((resolve) => resolve(undefined));
-    ;
   }
 
   /**
