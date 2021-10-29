@@ -132,6 +132,50 @@ class KycTokenClient {
         return result.value();
     }
     /**
+     * This is a contract level function, where we request a new admin to be whitelisted
+     * @param account
+     * @param paymentAmount
+     * @param ttl
+     */
+    async addAdmin(account, paymentAmount = constants_1.WHITELIST_PAYMENT_AMOUNT, ttl = constants_1.DEFAULT_TTL) {
+        // New minter to add
+        const runtimeArgs = casper_js_sdk_1.RuntimeArgs.fromMap({
+            admin: utils.createRecipientAddress(account),
+        });
+        return contractCall({
+            chainName: this.chainName,
+            contractHash: this.contractHash,
+            entryPoint: "grant_admin",
+            keys: this.masterKey,
+            nodeAddress: this.nodeAddress,
+            paymentAmount,
+            runtimeArgs,
+            ttl
+        });
+    }
+    /**
+     * This is a contract level function, where we request an admin to be removed
+     * @param account
+     * @param paymentAmount
+     * @param ttl
+     */
+    async revokeAdmin(account, paymentAmount = constants_1.WHITELIST_PAYMENT_AMOUNT, ttl = constants_1.DEFAULT_TTL) {
+        // New minter to add
+        const runtimeArgs = casper_js_sdk_1.RuntimeArgs.fromMap({
+            admin: utils.createRecipientAddress(account),
+        });
+        return contractCall({
+            chainName: this.chainName,
+            contractHash: this.contractHash,
+            entryPoint: "revoke_admin",
+            keys: this.masterKey,
+            nodeAddress: this.nodeAddress,
+            paymentAmount,
+            runtimeArgs,
+            ttl
+        });
+    }
+    /**
      * This is a contract level function, where we request a new gatekeeper to be whitelisted
      * @param account
      * @param paymentAmount

@@ -32,6 +32,20 @@ export declare class KycTokenClient {
      */
     isPaused(): Promise<any>;
     /**
+     * This is a contract level function, where we request a new admin to be whitelisted
+     * @param account
+     * @param paymentAmount
+     * @param ttl
+     */
+    addAdmin(account: CLPublicKey, paymentAmount?: string, ttl?: number): Promise<string>;
+    /**
+     * This is a contract level function, where we request an admin to be removed
+     * @param account
+     * @param paymentAmount
+     * @param ttl
+     */
+    revokeAdmin(account: CLPublicKey, paymentAmount?: string, ttl?: number): Promise<string>;
+    /**
      * This is a contract level function, where we request a new gatekeeper to be whitelisted
      * @param account
      * @param paymentAmount
