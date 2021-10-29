@@ -366,7 +366,7 @@ export class KycTokenClient {
 
     return this.updateTokenMetadata(
       kycToken,
-      CLValueBuilder.string("state"),
+      CLValueBuilder.string("status"),
       CLValueBuilder.string(state),
       paymentAmount
     );

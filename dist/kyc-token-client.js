@@ -256,7 +256,7 @@ class KycTokenClient {
         if (!kycToken) {
             throw Error(`KYC Token not found for account: ${account.toHex()}`);
         }
-        return this.updateTokenMetadata(kycToken, casper_js_sdk_1.CLValueBuilder.string("state"), casper_js_sdk_1.CLValueBuilder.string(state), paymentAmount);
+        return this.updateTokenMetadata(kycToken, casper_js_sdk_1.CLValueBuilder.string("status"), casper_js_sdk_1.CLValueBuilder.string(state), paymentAmount);
     }
     /**
      * Revoke the KYC Token belonging to this account
