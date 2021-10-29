@@ -381,7 +381,7 @@ class KycTokenClient {
         return contractCall({
             chainName: this.chainName,
             contractHash: this.contractHash,
-            entryPoint: "update_token_metadata",
+            entryPoint: "update_token_meta",
             keys: this.masterKey,
             nodeAddress: this.nodeAddress,
             paymentAmount,
