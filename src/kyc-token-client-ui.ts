@@ -215,7 +215,7 @@ export class KycTokenUIClient {
     return new Promise((resolve) => resolve(undefined));
   }
 
-  public async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
+  private async getKYCToken(account: CLPublicKey): Promise<string | undefined> {
     const accountKey = utils.createRecipientAddress(account);
     const accountBytes = CLValueParsers.toBytes(accountKey).unwrap();
     const balanceOri = await this.balanceOf(account);

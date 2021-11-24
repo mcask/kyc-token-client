@@ -10,10 +10,8 @@ const TestKYCTokenUiClient = async () => {
     const kycTokenClient = new KycTokenUIClient(nodeAddress, chain);
     await kycTokenClient.setContractHash(contractHash);
 
-    const name = await kycTokenClient.name();
-    console.log(name);
-    const totalSupply = await kycTokenClient.totalSupply();
-    console.log(totalSupply);
+    // const name = await kycTokenClient.name();
+    // const totalSupply = await kycTokenClient.totalSupply();
     const myGatewayToken = await kycTokenClient.getGatewayToken(CLPublicKey.fromHex(address));
     console.log(myGatewayToken);
 };
