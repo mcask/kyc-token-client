@@ -111,3 +111,23 @@ export const contractDictionaryGetter = async (
 
 export const contractHashToByteArray = (contractHash: string) =>
   Uint8Array.from(Buffer.from(contractHash, "hex"));
+
+export const contractSimpleGetter = async (
+    nodeAddress: string,
+    contractHash: string,
+    key: string[]
+) => {
+  const stateRootHash = await getStateRootHash(nodeAddress);
+  const clValue = await getContractData(
+      nodeAddress,
+      stateRootHash,
+      contractHash,
+      key
+  );
+
+  if (clValue && clValue.CLValue instanceof CLValue) {
+    return clValue.CLValue!;
+  } else {
+    throw Error("Invalid stored value");
+  }
+};

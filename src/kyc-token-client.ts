@@ -86,7 +86,7 @@ export class KycTokenClient {
   }
 
   public async name() {
-    const result = await contractSimpleGetter(
+    const result = await utils.contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
       ["name"]
@@ -95,7 +95,7 @@ export class KycTokenClient {
   }
 
   public async symbol() {
-    const result = await contractSimpleGetter(
+    const result = await utils.contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
       ["symbol"]
@@ -104,7 +104,7 @@ export class KycTokenClient {
   }
 
   public async meta() {
-    const result = await contractSimpleGetter(
+    const result = await utils.contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
       ["meta"]
@@ -155,7 +155,7 @@ export class KycTokenClient {
   }
 
   public async totalSupply() {
-    const result = await contractSimpleGetter(
+    const result = await utils.contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
       ["total_supply"]
@@ -196,7 +196,7 @@ export class KycTokenClient {
    */
   // TODO: Error: state query failed: ValueNotFound
   public async isPaused() {
-    const result = await contractSimpleGetter(
+    const result = await utils.contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
       ["is_paused"]
@@ -590,24 +590,4 @@ const contractCall = async ({
 
   // Dispatch deploy to node.
   return await client.putDeploy(deploy);
-};
-
-const contractSimpleGetter = async (
-  nodeAddress: string,
-  contractHash: string,
-  key: string[]
-) => {
-  const stateRootHash = await utils.getStateRootHash(nodeAddress);
-  const clValue = await utils.getContractData(
-    nodeAddress,
-    stateRootHash,
-    contractHash,
-    key
-  );
-
-  if (clValue && clValue.CLValue instanceof CLValue) {
-    return clValue.CLValue!;
-  } else {
-    throw Error("Invalid stored value");
-  }
 };
