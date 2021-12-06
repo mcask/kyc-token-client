@@ -33,18 +33,17 @@ const utils = __importStar(require("./utils"));
 class KycTokenClient {
     /**
      * Construct the KYC Token Client
-     * @param nodeAddress
-     * @param chainName
-     * @param masterKey - keypair which is allowed to make changes to the KYC Token
+     * @param executor this does the work on the blockchain
      */
-    constructor(nodeAddress, chainName, masterKey) {
-        this.nodeAddress = nodeAddress;
-        this.chainName = chainName;
-        this.masterKey = masterKey;
+    constructor(executor) {
+        this.executor = executor;
     }
+    /**
+     * Set the hash for this contract
+     * @param hash
+     */
     async setContractHash(hash) {
-        const stateRootHash = await utils.getStateRootHash(this.nodeAddress);
-        const contractData = await utils.getContractData(this.nodeAddress, stateRootHash, hash);
+        const contractData = await this.executor.getContractData(hash);
         const { contractPackageHash, namedKeys } = contractData.Contract;
         this.contractHash = hash;
         this.contractPackageHash = contractPackageHash.replace("contract-package-wasm", "");
@@ -52,13 +51,12 @@ class KycTokenClient {
             "admins",
             "allowances",
             "balances",
-            "gatekeepers",
             "metadata",
             "owned_indexes_by_token",
             "owned_tokens_by_index",
             "owners",
             "issuers",
-            "paused",
+            "paused"
         ];
         // @ts-ignore
         this.namedKeys = namedKeys.reduce((acc, val) => {
@@ -69,15 +67,15 @@ class KycTokenClient {
         }, {});
     }
     async name() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["name"]);
+        const result = await this.executor.getContractKey(this.contractHash, ["name"]);
         return result.value();
     }
     async symbol() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["symbol"]);
+        const result = await this.executor.getContractKey(this.contractHash, ["symbol"]);
         return result.value();
     }
     async meta() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["meta"]);
+        const result = await this.executor.getContractKey(this.contractHash, ["meta"]);
         const res = result.value();
         const jsMap = new Map();
         for (const [innerKey, value] of res) {
@@ -87,22 +85,27 @@ class KycTokenClient {
     }
     async balanceOf(account) {
         const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
-        const result = await utils.contractDictionaryGetter(this.nodeAddress, accountHash, this.namedKeys.balances);
-        const maybeValue = result === null || result === void 0 ? void 0 : result.value().unwrap();
-        return maybeValue.value().toString();
+        try {
+            const result = await this.executor.getContractDictionaryKey(accountHash, this.namedKeys.balances);
+            const maybeValue = result === null || result === void 0 ? void 0 : result.value().unwrap();
+            return maybeValue.value().toString();
+        }
+        catch (e) {
+            return "0"; // exception is thrown when this contract is not present in the account
+        }
     }
     async getOwnerOf(tokenId) {
-        const result = await utils.contractDictionaryGetter(this.nodeAddress, tokenId, this.namedKeys.owners);
+        const result = await this.executor.getContractDictionaryKey(tokenId, this.namedKeys.owners);
         const maybeValue = result.value().unwrap();
         return `account-hash-${Buffer.from(maybeValue.value().value()).toString("hex")}`;
     }
     async getIssuerOf(tokenId) {
-        const result = await utils.contractDictionaryGetter(this.nodeAddress, tokenId, this.namedKeys.issuers);
+        const result = await this.executor.getContractDictionaryKey(tokenId, this.namedKeys.issuers);
         const maybeValue = result.value().unwrap();
         return `account-hash-${Buffer.from(maybeValue.value().value()).toString("hex")}`;
     }
     async totalSupply() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["total_supply"]);
+        const result = await this.executor.getContractKey(this.contractHash, ["total_supply"]);
         return result.value();
     }
     /**
@@ -114,7 +117,7 @@ class KycTokenClient {
         if (!kycToken) {
             return new Promise((resolve) => resolve(undefined));
         }
-        const result = await utils.contractDictionaryGetter(this.nodeAddress, kycToken, this.namedKeys.metadata);
+        const result = await this.executor.getContractDictionaryKey(kycToken, this.namedKeys.metadata);
         const maybeValue = result.value().unwrap();
         const map = maybeValue.value();
         const jsMap = new Map();
@@ -128,7 +131,7 @@ class KycTokenClient {
      */
     // TODO: Error: state query failed: ValueNotFound
     async isPaused() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["is_paused"]);
+        const result = await this.executor.getContractKey(this.contractHash, ["is_paused"]);
         return result.value();
     }
     /**
@@ -142,15 +145,12 @@ class KycTokenClient {
         const runtimeArgs = casper_js_sdk_1.RuntimeArgs.fromMap({
             admin: utils.createRecipientAddress(account),
         });
-        return contractCall({
-            chainName: this.chainName,
+        return this.executor.call({
             contractHash: this.contractHash,
             entryPoint: "grant_admin",
-            keys: this.masterKey,
-            nodeAddress: this.nodeAddress,
             paymentAmount,
             runtimeArgs,
-            ttl
+            ttl,
         });
     }
     /**
@@ -164,15 +164,12 @@ class KycTokenClient {
         const runtimeArgs = casper_js_sdk_1.RuntimeArgs.fromMap({
             admin: utils.createRecipientAddress(account),
         });
-        return contractCall({
-            chainName: this.chainName,
+        return this.executor.call({
             contractHash: this.contractHash,
             entryPoint: "revoke_admin",
-            keys: this.masterKey,
-            nodeAddress: this.nodeAddress,
             paymentAmount,
             runtimeArgs,
-            ttl
+            ttl,
         });
     }
     /**
@@ -186,15 +183,12 @@ class KycTokenClient {
         const runtimeArgs = casper_js_sdk_1.RuntimeArgs.fromMap({
             gatekeeper: utils.createRecipientAddress(account),
         });
-        return contractCall({
-            chainName: this.chainName,
+        return this.executor.call({
             contractHash: this.contractHash,
             entryPoint: "grant_gatekeeper",
-            keys: this.masterKey,
-            nodeAddress: this.nodeAddress,
             paymentAmount,
             runtimeArgs,
-            ttl
+            ttl,
         });
     }
     /**
@@ -208,15 +202,12 @@ class KycTokenClient {
         const runtimeArgs = casper_js_sdk_1.RuntimeArgs.fromMap({
             gatekeeper: utils.createRecipientAddress(account),
         });
-        return contractCall({
-            chainName: this.chainName,
+        return this.executor.call({
             contractHash: this.contractHash,
             entryPoint: "revoke_gatekeeper",
-            keys: this.masterKey,
-            nodeAddress: this.nodeAddress,
             paymentAmount,
             runtimeArgs,
-            ttl
+            ttl,
         });
     }
     /**
@@ -234,15 +225,12 @@ class KycTokenClient {
             token_id: tokenId,
             token_meta: token.toClMap(),
         });
-        return contractCall({
-            chainName: this.chainName,
+        return this.executor.call({
             contractHash: this.contractHash,
             entryPoint: "mint",
-            keys: this.masterKey,
-            nodeAddress: this.nodeAddress,
             paymentAmount,
             runtimeArgs,
-            ttl
+            ttl,
         });
     }
     /**
@@ -306,8 +294,7 @@ class KycTokenClient {
      * @param deployHash
      */
     async confirmDeploy(deployHash) {
-        const client = new casper_js_sdk_1.CasperClient(this.nodeAddress);
-        const [deploy, raw] = await client.getDeploy(deployHash);
+        const [deploy, raw] = await this.executor.getDeploy(deployHash);
         if (raw.execution_results.length !== 0) {
             // @ts-ignore
             if (raw.execution_results[0].result.Success) {
@@ -330,7 +317,7 @@ class KycTokenClient {
             const concated = bytes_1.concat([accountBytes, numBytes]);
             const blaked = blakejs_1.default.blake2b(concated, undefined, 32);
             const str = Buffer.from(blaked).toString("hex");
-            const result = await utils.contractDictionaryGetter(this.nodeAddress, str, this.namedKeys.ownedTokensByIndex);
+            const result = await this.executor.getContractDictionaryKey(str, this.namedKeys.ownedTokensByIndex);
             const maybeValue = result.value().unwrap();
             return new Promise((resolve) => resolve(maybeValue.value()));
         }
@@ -350,15 +337,12 @@ class KycTokenClient {
             token_id: casper_js_sdk_1.CLValueBuilder.string(token.tokenId),
             token_meta: token.toClMap(),
         });
-        return contractCall({
-            chainName: this.chainName,
+        return this.executor.call({
             contractHash: this.contractHash,
             entryPoint: "set_token_meta",
-            keys: this.masterKey,
-            nodeAddress: this.nodeAddress,
             paymentAmount,
             runtimeArgs,
-            ttl
+            ttl,
         });
     }
     /**
@@ -378,36 +362,14 @@ class KycTokenClient {
             token_meta_key: metaKey,
             token_meta_value: metaValue
         });
-        return contractCall({
-            chainName: this.chainName,
+        return this.executor.call({
             contractHash: this.contractHash,
             entryPoint: "update_token_meta",
-            keys: this.masterKey,
-            nodeAddress: this.nodeAddress,
             paymentAmount,
             runtimeArgs,
-            ttl
+            ttl,
         });
     }
 }
 exports.KycTokenClient = KycTokenClient;
-const contractCall = async ({ nodeAddress, keys, chainName, contractHash, entryPoint, runtimeArgs, paymentAmount, ttl }) => {
-    const client = new casper_js_sdk_1.CasperClient(nodeAddress);
-    const contractHashAsByteArray = utils.contractHashToByteArray(contractHash);
-    let deploy = casper_js_sdk_1.DeployUtil.makeDeploy(new casper_js_sdk_1.DeployUtil.DeployParams(keys.publicKey, chainName, 1, ttl), casper_js_sdk_1.DeployUtil.ExecutableDeployItem.newStoredContractByHash(contractHashAsByteArray, entryPoint, runtimeArgs), casper_js_sdk_1.DeployUtil.standardPayment(paymentAmount));
-    // Sign deploy.
-    deploy = client.signDeploy(deploy, keys);
-    // Dispatch deploy to node.
-    return await client.putDeploy(deploy);
-};
-const contractSimpleGetter = async (nodeAddress, contractHash, key) => {
-    const stateRootHash = await utils.getStateRootHash(nodeAddress);
-    const clValue = await utils.getContractData(nodeAddress, stateRootHash, contractHash, key);
-    if (clValue && clValue.CLValue instanceof casper_js_sdk_1.CLValue) {
-        return clValue.CLValue;
-    }
-    else {
-        throw Error("Invalid stored value");
-    }
-};
 //# sourceMappingURL=kyc-token-client.js.map

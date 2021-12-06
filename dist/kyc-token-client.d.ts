@@ -1,19 +1,20 @@
-import { CLPublicKey, CLValue, DeployUtil, Keys } from "casper-js-sdk";
+import { CLPublicKey, CLValue, DeployUtil } from "casper-js-sdk";
 import { GatewayToken, State } from "./gateway-token";
+import { CasperExecutor } from "./executor-base";
 export declare class KycTokenClient {
-    private nodeAddress;
-    private chainName;
-    private masterKey;
+    readonly executor: CasperExecutor;
     private contractHash;
     private contractPackageHash;
     private namedKeys;
     /**
      * Construct the KYC Token Client
-     * @param nodeAddress
-     * @param chainName
-     * @param masterKey - keypair which is allowed to make changes to the KYC Token
+     * @param executor this does the work on the blockchain
      */
-    constructor(nodeAddress: string, chainName: string, masterKey: Keys.AsymmetricKey);
+    constructor(executor: CasperExecutor);
+    /**
+     * Set the hash for this contract
+     * @param hash
+     */
     setContractHash(hash: string): Promise<void>;
     name(): Promise<any>;
     symbol(): Promise<any>;
