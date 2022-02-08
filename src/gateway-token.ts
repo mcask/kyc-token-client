@@ -1,9 +1,20 @@
 import {CLMap, CLPublicKey, CLTypeBuilder, CLValue, CLValueBuilder} from "casper-js-sdk";
 
 export enum State {
-  ACTIVE = "Active",
-  REVOKED = "Revoked",
-  FROZEN = "Frozen",
+  ACTIVE = "active",
+  REVOKED = "revoked",
+  FROZEN = "frozen",
+}
+
+const toState = (st: string): State => {
+  const stl = st.toLowerCase();
+  if (stl === 'active') {
+    return State.ACTIVE;
+  }
+  if (stl === 'revoked') {
+    return State.REVOKED;
+  }
+  return State.FROZEN;
 }
 
 export class GatewayToken {
@@ -13,7 +24,7 @@ export class GatewayToken {
       CLPublicKey.fromHex(meta.get('issuer')!),
       meta.get('network')!,
       account,
-      meta.get('status')! as State,
+      toState(meta.get('status')!),
       meta.get('expiry'),
       tokenId
     )

@@ -1,8 +1,8 @@
 import { CLMap, CLPublicKey, CLValue } from "casper-js-sdk";
 export declare enum State {
-    ACTIVE = "Active",
-    REVOKED = "Revoked",
-    FROZEN = "Frozen"
+    ACTIVE = "active",
+    REVOKED = "revoked",
+    FROZEN = "frozen"
 }
 export declare class GatewayToken {
     readonly issuingGatekeeper: CLPublicKey;

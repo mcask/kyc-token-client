@@ -14,7 +14,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -314,7 +314,7 @@ class KycTokenClient {
         const balance = parseInt(balanceOri, 10);
         if (balance !== 0) {
             const numBytes = casper_js_sdk_1.CLValueParsers.toBytes(casper_js_sdk_1.CLValueBuilder.u256(0)).unwrap();
-            const concated = bytes_1.concat([accountBytes, numBytes]);
+            const concated = (0, bytes_1.concat)([accountBytes, numBytes]);
             const blaked = blakejs_1.default.blake2b(concated, undefined, 32);
             const str = Buffer.from(blaked).toString("hex");
             const result = await this.executor.getContractDictionaryKey(str, this.namedKeys.ownedTokensByIndex);

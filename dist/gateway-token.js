@@ -4,10 +4,20 @@ exports.GatewayToken = exports.State = void 0;
 const casper_js_sdk_1 = require("casper-js-sdk");
 var State;
 (function (State) {
-    State["ACTIVE"] = "Active";
-    State["REVOKED"] = "Revoked";
-    State["FROZEN"] = "Frozen";
+    State["ACTIVE"] = "active";
+    State["REVOKED"] = "revoked";
+    State["FROZEN"] = "frozen";
 })(State = exports.State || (exports.State = {}));
+const toState = (st) => {
+    const stl = st.toLowerCase();
+    if (stl === 'active') {
+        return State.ACTIVE;
+    }
+    if (stl === 'revoked') {
+        return State.REVOKED;
+    }
+    return State.FROZEN;
+};
 class GatewayToken {
     constructor(
     // Account of the Gatekeeper that is issuing the KYC Tokens
@@ -22,7 +32,7 @@ class GatewayToken {
         this.tokenId = tokenId;
     }
     static of(account, tokenId, meta) {
-        return new GatewayToken(casper_js_sdk_1.CLPublicKey.fromHex(meta.get('issuer')), meta.get('network'), account, meta.get('status'), meta.get('expiry'), tokenId);
+        return new GatewayToken(casper_js_sdk_1.CLPublicKey.fromHex(meta.get('issuer')), meta.get('network'), account, toState(meta.get('status')), meta.get('expiry'), tokenId);
     }
     isValid() {
         return this.status === State.ACTIVE && !this.hasExpired();

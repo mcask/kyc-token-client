@@ -6,29 +6,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo2 = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
 const casper_js_sdk_1 = require("casper-js-sdk");
 const fs_1 = __importDefault(require("fs"));
-exports.camelCased = (myString) => myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-exports.createRecipientAddress = (recipient) => {
+const camelCased = (myString) => myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+exports.camelCased = camelCased;
+const createRecipientAddress = (recipient) => {
     return new casper_js_sdk_1.CLKey(new casper_js_sdk_1.CLAccountHash(recipient.toAccountHash()));
 };
+exports.createRecipientAddress = createRecipientAddress;
 /**
  * Returns an ECC key pair mapped to an NCTL faucet account.
  * @param pathToFaucet - Path to NCTL faucet directory.
  */
-exports.getKeyPairOfContract = (pathToFaucet) => casper_js_sdk_1.Keys.Ed25519.parseKeyFiles(`${pathToFaucet}/public_key.pem`, `${pathToFaucet}/secret_key.pem`);
+const getKeyPairOfContract = (pathToFaucet) => casper_js_sdk_1.Keys.Ed25519.parseKeyFiles(`${pathToFaucet}/public_key.pem`, `${pathToFaucet}/secret_key.pem`);
+exports.getKeyPairOfContract = getKeyPairOfContract;
 /**
  * Returns a binary as u8 array.
  * @param pathToBinary - Path to binary file to be loaded into memory.
  * @return Uint8Array Byte array.
  */
-exports.getBinary = (pathToBinary) => {
+const getBinary = (pathToBinary) => {
     return new Uint8Array(fs_1.default.readFileSync(pathToBinary, null).buffer);
 };
+exports.getBinary = getBinary;
 /**
  * Returns global state root hash at current block.
  * @param {String} nodeAddress - JS SDK client for interacting with a node.
  * @return {String} Root hash of global state at most recent block.
  */
-exports.getStateRootHash = async (nodeAddress) => {
+const getStateRootHash = async (nodeAddress) => {
     const client = new casper_js_sdk_1.CasperServiceByJsonRPC(nodeAddress);
     const { block } = await client.getLatestBlockInfo();
     if (block) {
@@ -38,31 +42,35 @@ exports.getStateRootHash = async (nodeAddress) => {
         throw Error("Problem when calling getLatestBlockInfo");
     }
 };
-exports.getAccountInfo2 = async (nodeAddress, publicKey) => {
-    const stateRootHash = await exports.getStateRootHash(nodeAddress);
+exports.getStateRootHash = getStateRootHash;
+const getAccountInfo2 = async (nodeAddress, publicKey) => {
+    const stateRootHash = await (0, exports.getStateRootHash)(nodeAddress);
     const client = new casper_js_sdk_1.CasperServiceByJsonRPC(nodeAddress);
     const accountHash = publicKey.toAccountHashStr();
     const blockState = await client.getBlockState(stateRootHash, accountHash, []);
     return blockState.Account;
 };
+exports.getAccountInfo2 = getAccountInfo2;
 /**
  * Returns a value under an on-chain account's storage.
  * @param accountInfo - On-chain account's info.
  * @param namedKey - A named key associated with an on-chain account.
  */
-exports.getAccountNamedKeyValue = (accountInfo, namedKey) => {
+const getAccountNamedKeyValue = (accountInfo, namedKey) => {
     const found = accountInfo.namedKeys.find((i) => i.name === namedKey);
     if (found) {
         return found.key;
     }
     return undefined;
 };
-exports.getContractData = async (nodeAddress, stateRootHash, contractHash, path = []) => {
+exports.getAccountNamedKeyValue = getAccountNamedKeyValue;
+const getContractData = async (nodeAddress, stateRootHash, contractHash, path = []) => {
     const client = new casper_js_sdk_1.CasperServiceByJsonRPC(nodeAddress);
     return await client.getBlockState(stateRootHash, `hash-${contractHash}`, path);
 };
-exports.contractDictionaryGetter = async (nodeAddress, dictionaryItemKey, seedUref) => {
-    const stateRootHash = await exports.getStateRootHash(nodeAddress);
+exports.getContractData = getContractData;
+const contractDictionaryGetter = async (nodeAddress, dictionaryItemKey, seedUref) => {
+    const stateRootHash = await (0, exports.getStateRootHash)(nodeAddress);
     const client = new casper_js_sdk_1.CasperServiceByJsonRPC(nodeAddress);
     const storedValue = await client.getDictionaryItemByURef(stateRootHash, dictionaryItemKey, seedUref);
     if (storedValue && storedValue.CLValue instanceof casper_js_sdk_1.CLValue) {
@@ -72,5 +80,7 @@ exports.contractDictionaryGetter = async (nodeAddress, dictionaryItemKey, seedUr
         throw Error("Invalid stored value");
     }
 };
-exports.contractHashToByteArray = (contractHash) => Uint8Array.from(Buffer.from(contractHash, "hex"));
+exports.contractDictionaryGetter = contractDictionaryGetter;
+const contractHashToByteArray = (contractHash) => Uint8Array.from(Buffer.from(contractHash, "hex"));
+exports.contractHashToByteArray = contractHashToByteArray;
 //# sourceMappingURL=utils.js.map
