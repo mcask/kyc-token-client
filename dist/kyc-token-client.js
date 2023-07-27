@@ -18,13 +18,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KycTokenClient = void 0;
 const bytes_1 = require("@ethersproject/bytes");
-const blakejs_1 = __importDefault(require("blakejs"));
+const blake2b_1 = require("@noble/hashes/blake2b");
 const casper_js_sdk_1 = require("casper-js-sdk");
 const ts_results_1 = require("ts-results");
 const constants_1 = require("./constants");
@@ -69,15 +66,15 @@ class KycTokenClient {
         }, {});
     }
     async name() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["name"]);
+        const result = await utils.contractSimpleGetter(this.nodeAddress, this.contractHash, ["name"]);
         return result.value();
     }
     async symbol() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["symbol"]);
+        const result = await utils.contractSimpleGetter(this.nodeAddress, this.contractHash, ["symbol"]);
         return result.value();
     }
     async meta() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["meta"]);
+        const result = await utils.contractSimpleGetter(this.nodeAddress, this.contractHash, ["meta"]);
         const res = result.value();
         const jsMap = new Map();
         for (const [innerKey, value] of res) {
@@ -102,7 +99,7 @@ class KycTokenClient {
         return `account-hash-${Buffer.from(maybeValue.value().value()).toString("hex")}`;
     }
     async totalSupply() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["total_supply"]);
+        const result = await utils.contractSimpleGetter(this.nodeAddress, this.contractHash, ["total_supply"]);
         return result.value();
     }
     /**
@@ -128,7 +125,7 @@ class KycTokenClient {
      */
     // TODO: Error: state query failed: ValueNotFound
     async isPaused() {
-        const result = await contractSimpleGetter(this.nodeAddress, this.contractHash, ["is_paused"]);
+        const result = await utils.contractSimpleGetter(this.nodeAddress, this.contractHash, ["is_paused"]);
         return result.value();
     }
     /**
@@ -328,7 +325,7 @@ class KycTokenClient {
         if (balance !== 0) {
             const numBytes = casper_js_sdk_1.CLValueParsers.toBytes(casper_js_sdk_1.CLValueBuilder.u256(0)).unwrap();
             const concated = bytes_1.concat([accountBytes, numBytes]);
-            const blaked = blakejs_1.default.blake2b(concated, undefined, 32);
+            const blaked = blake2b_1.blake2b(concated, { dkLen: 32 });
             const str = Buffer.from(blaked).toString("hex");
             const result = await utils.contractDictionaryGetter(this.nodeAddress, str, this.namedKeys.ownedTokensByIndex);
             const maybeValue = result.value().unwrap();
@@ -399,15 +396,5 @@ const contractCall = async ({ nodeAddress, keys, chainName, contractHash, entryP
     deploy = client.signDeploy(deploy, keys);
     // Dispatch deploy to node.
     return await client.putDeploy(deploy);
-};
-const contractSimpleGetter = async (nodeAddress, contractHash, key) => {
-    const stateRootHash = await utils.getStateRootHash(nodeAddress);
-    const clValue = await utils.getContractData(nodeAddress, stateRootHash, contractHash, key);
-    if (clValue && clValue.CLValue instanceof casper_js_sdk_1.CLValue) {
-        return clValue.CLValue;
-    }
-    else {
-        throw Error("Invalid stored value");
-    }
 };
 //# sourceMappingURL=kyc-token-client.js.map
