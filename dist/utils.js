@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo2 = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
+exports.contractSimpleGetter = exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo2 = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
 const casper_js_sdk_1 = require("casper-js-sdk");
 const fs_1 = __importDefault(require("fs"));
 exports.camelCased = (myString) => myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -73,4 +73,14 @@ exports.contractDictionaryGetter = async (nodeAddress, dictionaryItemKey, seedUr
     }
 };
 exports.contractHashToByteArray = (contractHash) => Uint8Array.from(Buffer.from(contractHash, "hex"));
+exports.contractSimpleGetter = async (nodeAddress, contractHash, key) => {
+    const stateRootHash = await exports.getStateRootHash(nodeAddress);
+    const clValue = await exports.getContractData(nodeAddress, stateRootHash, contractHash, key);
+    if (clValue && clValue.CLValue instanceof casper_js_sdk_1.CLValue) {
+        return clValue.CLValue;
+    }
+    else {
+        throw Error("Invalid stored value");
+    }
+};
 //# sourceMappingURL=utils.js.map
