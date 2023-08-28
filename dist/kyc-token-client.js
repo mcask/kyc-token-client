@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -18,13 +22,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KycTokenClient = void 0;
 const bytes_1 = require("@ethersproject/bytes");
-const blakejs_1 = __importDefault(require("blakejs"));
+const blake2b_1 = require("@noble/hashes/blake2b");
 const casper_js_sdk_1 = require("casper-js-sdk");
 const ts_results_1 = require("ts-results");
 const constants_1 = require("./constants");
@@ -315,7 +316,10 @@ class KycTokenClient {
         if (balance !== 0) {
             const numBytes = casper_js_sdk_1.CLValueParsers.toBytes(casper_js_sdk_1.CLValueBuilder.u256(0)).unwrap();
             const concated = (0, bytes_1.concat)([accountBytes, numBytes]);
-            const blaked = blakejs_1.default.blake2b(concated, undefined, 32);
+            // const blaked = blake.blake2b(concated, undefined, 32)
+            const blaked = (0, blake2b_1.blake2b)(concated, {
+                dkLen: 32
+            });
             const str = Buffer.from(blaked).toString("hex");
             const result = await this.executor.getContractDictionaryKey(str, this.namedKeys.ownedTokensByIndex);
             const maybeValue = result.value().unwrap();

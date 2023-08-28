@@ -25,6 +25,6 @@ export declare const getAccountInfo2: (nodeAddress: string, publicKey: CLPublicK
  * @param namedKey - A named key associated with an on-chain account.
  */
 export declare const getAccountNamedKeyValue: (accountInfo: any, namedKey: string) => any;
-export declare const getContractData: (nodeAddress: string, stateRootHash: string, contractHash: string, path?: string[]) => Promise<import("casper-js-sdk/dist/lib/StoredValue").StoredValue>;
+export declare const getContractData: (nodeAddress: string, stateRootHash: string, contractHash: string, path?: string[]) => Promise<import("casper-js-sdk").StoredValue>;
 export declare const contractDictionaryGetter: (nodeAddress: string, dictionaryItemKey: string, seedUref: string) => Promise<CLValue>;
 export declare const contractHashToByteArray: (contractHash: string) => Uint8Array;

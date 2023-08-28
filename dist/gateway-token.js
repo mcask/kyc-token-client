@@ -19,6 +19,9 @@ const toState = (st) => {
     return State.FROZEN;
 };
 class GatewayToken {
+    static of(account, tokenId, meta) {
+        return new GatewayToken(casper_js_sdk_1.CLPublicKey.fromHex(meta.get('issuer')), meta.get('network'), account, toState(meta.get('status')), meta.get('expiry'), tokenId);
+    }
     constructor(
     // Account of the Gatekeeper that is issuing the KYC Tokens
     issuingGatekeeper, 
@@ -30,9 +33,6 @@ class GatewayToken {
         this.status = status;
         this.expiryTime = expiryTime;
         this.tokenId = tokenId;
-    }
-    static of(account, tokenId, meta) {
-        return new GatewayToken(casper_js_sdk_1.CLPublicKey.fromHex(meta.get('issuer')), meta.get('network'), account, toState(meta.get('status')), meta.get('expiry'), tokenId);
     }
     isValid() {
         return this.status === State.ACTIVE && !this.hasExpired();

@@ -1,5 +1,5 @@
 import {concat} from '@ethersproject/bytes';
-import blake from "blakejs";
+import { blake2b } from '@noble/hashes/blake2b';
 import {
   CLPublicKey,
   CLTypeBuilder,
@@ -437,7 +437,10 @@ export class KycTokenClient {
     if (balance !== 0) {
       const numBytes = CLValueParsers.toBytes(CLValueBuilder.u256(0)).unwrap();
       const concated = concat([accountBytes, numBytes]);
-      const blaked = blake.blake2b(concated, undefined, 32)
+      // const blaked = blake.blake2b(concated, undefined, 32)
+      const blaked =  blake2b(concated, {
+        dkLen: 32
+      });
       const str = Buffer.from(blaked).toString("hex");
       const result = await this.executor.getContractDictionaryKey(
         str,
