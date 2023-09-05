@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo2 = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
+exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
 const casper_js_sdk_1 = require("casper-js-sdk");
 const fs_1 = __importDefault(require("fs"));
 const camelCased = (myString) => myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -43,14 +43,14 @@ const getStateRootHash = async (nodeAddress) => {
     }
 };
 exports.getStateRootHash = getStateRootHash;
-const getAccountInfo2 = async (nodeAddress, publicKey) => {
+const getAccountInfo = async (nodeAddress, publicKey) => {
     const stateRootHash = await (0, exports.getStateRootHash)(nodeAddress);
     const client = new casper_js_sdk_1.CasperServiceByJsonRPC(nodeAddress);
     const accountHash = publicKey.toAccountHashStr();
     const blockState = await client.getBlockState(stateRootHash, accountHash, []);
     return blockState.Account;
 };
-exports.getAccountInfo2 = getAccountInfo2;
+exports.getAccountInfo = getAccountInfo;
 /**
  * Returns a value under an on-chain account's storage.
  * @param accountInfo - On-chain account's info.

@@ -49,7 +49,7 @@ export const getStateRootHash = async (nodeAddress: string) => {
   }
 };
 
-export const getAccountInfo2 = async (
+export const getAccountInfo = async (
   nodeAddress: string,
   publicKey: CLPublicKey
 ): Promise<any> => {

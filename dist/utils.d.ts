@@ -18,13 +18,13 @@ export declare const getBinary: (pathToBinary: string) => Uint8Array;
  * @return {String} Root hash of global state at most recent block.
  */
 export declare const getStateRootHash: (nodeAddress: string) => Promise<string>;
-export declare const getAccountInfo2: (nodeAddress: string, publicKey: CLPublicKey) => Promise<any>;
+export declare const getAccountInfo: (nodeAddress: string, publicKey: CLPublicKey) => Promise<any>;
 /**
  * Returns a value under an on-chain account's storage.
  * @param accountInfo - On-chain account's info.
  * @param namedKey - A named key associated with an on-chain account.
  */
 export declare const getAccountNamedKeyValue: (accountInfo: any, namedKey: string) => any;
-export declare const getContractData: (nodeAddress: string, stateRootHash: string, contractHash: string, path?: string[]) => Promise<import("casper-js-sdk/dist/lib/StoredValue").StoredValue>;
+export declare const getContractData: (nodeAddress: string, stateRootHash: string, contractHash: string, path?: string[]) => Promise<import("casper-js-sdk").StoredValue>;
 export declare const contractDictionaryGetter: (nodeAddress: string, dictionaryItemKey: string, seedUref: string) => Promise<CLValue>;
 export declare const contractHashToByteArray: (contractHash: string) => Uint8Array;
