@@ -7,12 +7,6 @@ export declare const createRecipientAddress: (recipient: CLPublicKey) => CLKey;
  */
 export declare const getKeyPairOfContract: (pathToFaucet: string) => Keys.AsymmetricKey;
 /**
- * Returns a binary as u8 array.
- * @param pathToBinary - Path to binary file to be loaded into memory.
- * @return Uint8Array Byte array.
- */
-export declare const getBinary: (pathToBinary: string) => Uint8Array;
-/**
  * Returns global state root hash at current block.
  * @param {String} nodeAddress - JS SDK client for interacting with a node.
  * @return {String} Root hash of global state at most recent block.
