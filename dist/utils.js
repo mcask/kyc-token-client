@@ -1,11 +1,7 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo = exports.getStateRootHash = exports.getBinary = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
+exports.contractHashToByteArray = exports.contractDictionaryGetter = exports.getContractData = exports.getAccountNamedKeyValue = exports.getAccountInfo = exports.getStateRootHash = exports.getKeyPairOfContract = exports.createRecipientAddress = exports.camelCased = void 0;
 const casper_js_sdk_1 = require("casper-js-sdk");
-const fs_1 = __importDefault(require("fs"));
 const camelCased = (myString) => myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
 exports.camelCased = camelCased;
 const createRecipientAddress = (recipient) => {
@@ -18,15 +14,6 @@ exports.createRecipientAddress = createRecipientAddress;
  */
 const getKeyPairOfContract = (pathToFaucet) => casper_js_sdk_1.Keys.Ed25519.parseKeyFiles(`${pathToFaucet}/public_key.pem`, `${pathToFaucet}/secret_key.pem`);
 exports.getKeyPairOfContract = getKeyPairOfContract;
-/**
- * Returns a binary as u8 array.
- * @param pathToBinary - Path to binary file to be loaded into memory.
- * @return Uint8Array Byte array.
- */
-const getBinary = (pathToBinary) => {
-    return new Uint8Array(fs_1.default.readFileSync(pathToBinary, null).buffer);
-};
-exports.getBinary = getBinary;
 /**
  * Returns global state root hash at current block.
  * @param {String} nodeAddress - JS SDK client for interacting with a node.

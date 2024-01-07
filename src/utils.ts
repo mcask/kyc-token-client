@@ -6,7 +6,6 @@ import {
   CLValue,
   Keys,
 } from "casper-js-sdk";
-import fs from "fs";
 
 export const camelCased = (myString: string) =>
   myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -24,15 +23,6 @@ export const getKeyPairOfContract = (pathToFaucet: string) =>
     `${pathToFaucet}/public_key.pem`,
     `${pathToFaucet}/secret_key.pem`
   );
-
-/**
- * Returns a binary as u8 array.
- * @param pathToBinary - Path to binary file to be loaded into memory.
- * @return Uint8Array Byte array.
- */
-export const getBinary = (pathToBinary: string) => {
-  return new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
-};
 
 /**
  * Returns global state root hash at current block.
